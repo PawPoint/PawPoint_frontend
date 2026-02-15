@@ -1,0 +1,32 @@
+name: pawpoint_mobileapp
+description: "A new Flutter project."
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+dependencies:
+
+  firebase_core: ^2.25.4
+  firebase_auth: ^4.17.4
+
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/LOGO.png
+    - assets/images/catlogin.png
