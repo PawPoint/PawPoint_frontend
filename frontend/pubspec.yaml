@@ -7,9 +7,10 @@ version: 1.0.0+1
 environment:
   sdk: ^3.10.7
 dependencies:
-
-  firebase_core: ^2.25.4
-  firebase_auth: ^4.17.4
+  google_fonts: ^6.2.1
+  firebase_core: ^3.10.1
+  firebase_auth: ^5.4.1
+  cloud_firestore: ^5.6.2
 
   flutter:
     sdk: flutter
@@ -30,3 +31,6 @@ flutter:
     - assets/images/
     - assets/images/LOGO.png
     - assets/images/catlogin.png
+    - assets/images/c1-removebg-preview.png
+    - assets/images/forgotpassicon.png
+    - assets/images/welcomepage.png

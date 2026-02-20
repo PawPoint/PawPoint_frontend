@@ -1,8 +1,7 @@
-import "package:flutter/material.dart";
-import "package:pawpoint_mobileapp/features/appointments/presentation/pages/dashboard_page.dart";
-import "dart:async";
 
-import "package:pawpoint_mobileapp/features/appointments/presentation/pages/dashboard_page.dart";
+import "package:flutter/material.dart";
+import "package:pawpoint_mobileapp/presentation/dashboard_page.dart";
+import "dart:async";
 
 class SplashScreen extends StatefulWidget{
   const SplashScreen({super.key}); 
@@ -28,11 +27,6 @@ class _SplashScreen extends State<SplashScreen>{
   Widget build(BuildContext context){
     return Scaffold( 
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(""),
-      ),
       body: Stack(
         children: [
           Align(

@@ -1,8 +1,9 @@
 import "package:flutter/material.dart";
-import "package:pawpoint_mobileapp/features/appointments/presentation/pages/login_page.dart";
-
+import 'loginsignup_page.dart';
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
+
+  @override
   State<DashboardPage> createState() => _DashboardPage();
 }
 
@@ -20,19 +21,19 @@ class _DashboardPage extends State<DashboardPage> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => LoginPage()
+                  MaterialPageRoute(builder: (context) => LoginsignupPage()
                   ),
                 );
                 },
-                child: const Text(
-                  "Login"
-                ),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 40,
                   vertical: 15,
                 ),
               ),
+                child: const Text(
+                  "Login"
+                ),
             ),
           ),
         ],
