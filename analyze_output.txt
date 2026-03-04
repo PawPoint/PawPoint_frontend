@@ -1,0 +1,38 @@
+﻿Analyzing frontend...                                           
+
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\add_pet_page.dart:311:59 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\presentation\appointments_page.dart:320:35 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\presentation\appointments_page.dart:320:39 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\presentation\book_now_page.dart:269:55 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\presentation\book_now_page.dart:269:59 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\book_now_page.dart:308:38 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\presentation\book_now_page.dart:384:31 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\presentation\book_now_page.dart:384:35 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\dashboard_page.dart:413:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\login_page.dart:119:43 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\presentation\my_pets_page.dart:162:49 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\presentation\my_pets_page.dart:249:39 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\presentation\my_pets_page.dart:249:43 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\presentation\my_pets_page.dart:302:31 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\presentation\my_pets_page.dart:302:35 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\signup_page.dart:440:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\verify_page.dart:316:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\verify_page.dart:439:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\widgets\shared_bottom_nav.dart:109:33 - deprecated_member_use
+
+flutter : 19 issues found. 
+(ran in 2.8s)
+At line:1 char:1
++ flutter analyze 2>&1 | 
+Out-File -FilePath 
+C:\Users\Rane\Documents\Flu 
+...
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (19 issu  
+  es found. (ran in 2.8s):   
+ String) [], RemoteExcept    
+ion
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 

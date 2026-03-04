@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "325353125400",
+    "project_id": "pawpoint-8822d",
+    "storage_bucket": "pawpoint-8822d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:325353125400:android:b1d4c04bb2f919f39a356d",
+        "android_client_info": {
+          "package_name": "com.example.pawpoint_mobileapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChKD0gpZPQ-KSiaZaZmubJ1oJLhjKbDC0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
