@@ -171,12 +171,14 @@ class _MyPetsPageState extends State<MyPetsPage> {
 
             // ── Add Button ──────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(40, 10, 40, 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: () {
+              padding: const EdgeInsets.symmetric( horizontal: 45, vertical:25),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  SizedBox(
+                    width: 56,
+                    height: 52,
+                    child: ElevatedButton(onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -188,20 +190,19 @@ class _MyPetsPageState extends State<MyPetsPage> {
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
+                    padding: EdgeInsets.zero,
+                    shape: const StadiumBorder(),
                   ),
-                  child: Text(
-                    'Add',
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: const Icon(
+                    Icons
+                        .add, 
+                    size: 24,
                   ),
                 ),
+                ),
+                ],
+                  ),
               ),
-            ),
           ],
         ),
       ),
