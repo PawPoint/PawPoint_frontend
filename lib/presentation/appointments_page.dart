@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pawpoint_mobileapp/models/appointment_model.dart';
+import 'package:pawpoint_mobileapp/presentation/profile_page.dart';
 import 'widgets/shared_bottom_nav.dart';
 
 // ── Doctor image map ──────────────────────────────────────────────────────────
@@ -123,7 +124,15 @@ class _AppointmentsPageState extends State<AppointmentsPage>
     if (index == 3) return; // already here
     setState(() => _selectedIndex = index);
     Navigator.pop(context);
+    if (index == 4){
+      setState(() => _selectedIndex = 4);
+      Navigator.push(
+      context, 
+      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+      ).then((_) => setState(() => _selectedIndex = 3));
+    }
   }
+    
 
   // ── Tab content ────────────────────────────────────────────────────────────
 
