@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawpoint_mobileapp/models/pet_model.dart';
+import 'package:pawpoint_mobileapp/presentation/profile_page.dart';
 import 'select_pet_type_page.dart';
 import 'widgets/shared_bottom_nav.dart';
 import 'book_now_page.dart';
@@ -43,6 +44,13 @@ class _MyPetsPageState extends State<MyPetsPage> {
         MaterialPageRoute(builder: (_) => const AppointmentsPage()),
       ).then((_) => setState(() => _selectedIndex = 1));
       return;
+    }
+    if (index == 4){
+      setState(() => _selectedIndex = 4);
+      Navigator.push(
+      context, 
+      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+      ).then((_) => setState(() => _selectedIndex = 1));
     }
     setState(() => _selectedIndex = index);
   }

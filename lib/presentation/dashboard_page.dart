@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pawpoint_mobileapp/presentation/profile_page.dart';
 import 'loginsignup_page.dart';
 import 'book_now_page.dart';
 import 'appointments_page.dart';
@@ -314,23 +315,46 @@ class _DashboardPageState extends State<DashboardPage> {
       bottomNavigationBar: SharedBottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: (index) {
+          final user = FirebaseAuth.instance.currentUser;
+
           if (index == 1) {
             setState(() => _selectedIndex = 1);
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const MyPetsPage()),
+              MaterialPageRoute(
+                builder: (_) =>
+                    user != null ? const MyPetsPage() : const LoginsignupPage(),
+              ),
             ).then((_) => setState(() => _selectedIndex = 0));
           } else if (index == 2) {
             setState(() => _selectedIndex = 2);
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const BookNowPage()),
+              MaterialPageRoute(
+                builder: (_) => user != null
+                    ? const BookNowPage()
+                    : const LoginsignupPage(),
+              ),
             ).then((_) => setState(() => _selectedIndex = 0));
           } else if (index == 3) {
             setState(() => _selectedIndex = 3);
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const AppointmentsPage()),
+              MaterialPageRoute(
+                builder: (_) => user != null
+                    ? const AppointmentsPage()
+                    : const LoginsignupPage(),
+              ),
+            ).then((_) => setState(() => _selectedIndex = 0));
+          } else if (index == 4) {
+            setState(() => _selectedIndex = 4);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => user != null
+                    ? const ProfileScreen()
+                    : const LoginsignupPage(),
+              ),
             ).then((_) => setState(() => _selectedIndex = 0));
           } else {
             setState(() => _selectedIndex = index);
