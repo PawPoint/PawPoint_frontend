@@ -33,9 +33,10 @@ class PetModel {
       name: data['name'] ?? '',
       breed: data['breed'] ?? '',
       gender: data['gender'] ?? '',
-      age: data['age'] ?? '',
-      height: data['height'] ?? '',
-      weight: data['weight'] ?? '',
+      // ✅ Use 'data' consistently and keep your .toString() safety
+      age: data['age']?.toString() ?? '', 
+      height: data['height']?.toString() ?? '',
+      weight: data['weight']?.toString() ?? '',
       birthday: data['birthday'] ?? '',
       characteristics: data['characteristics'] ?? '',
       imageUrl: data['imageUrl'],
