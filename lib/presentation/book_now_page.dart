@@ -5,6 +5,8 @@ import 'package:pawpoint_mobileapp/presentation/profile_page.dart';
 import 'widgets/shared_bottom_nav.dart';
 import 'booking_confirmation_page.dart';
 import 'appointments_page.dart';
+import 'dashboard_page.dart';
+import 'my_pets_page.dart';
 
 class BookNowPage extends StatefulWidget {
   final String? initialDoctor;
@@ -133,6 +135,21 @@ class _BookNowPageState extends State<BookNowPage> {
 
   void _onNavTapped(int index) {
     if (index == 2) return; // already here
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardPage()),
+      );
+      return;
+    }
+    if (index == 1) {
+      setState(() => _selectedIndex = 1);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MyPetsPage()),
+      ).then((_) => setState(() => _selectedIndex = 4));
+      return;
+    }
     if (index == 3) {
       setState(() => _selectedIndex = 3);
       Navigator.push(
@@ -148,8 +165,6 @@ class _BookNowPageState extends State<BookNowPage> {
       MaterialPageRoute(builder: (_) => const ProfileScreen()),
       ).then((_) => setState(() => _selectedIndex = 2));
     }
-    setState(() => _selectedIndex = index);
-    Navigator.pop(context);
   }
 
   @override
