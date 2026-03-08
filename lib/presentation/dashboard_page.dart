@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pawpoint_mobileapp/presentation/about_us_page.dart';
 import 'package:pawpoint_mobileapp/presentation/profile_page.dart';
 import 'loginsignup_page.dart';
 import 'book_now_page.dart';
@@ -152,7 +153,13 @@ class _DashboardPageState extends State<DashboardPage> {
                               ),
                               const SizedBox(height: 14),
                               ElevatedButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  Navigator.push(
+                                    context, 
+                                    MaterialPageRoute(builder: (_) => AboutUsPage(),
+                                  ),
+                                  );
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.black,
                                   foregroundColor: Colors.white,
