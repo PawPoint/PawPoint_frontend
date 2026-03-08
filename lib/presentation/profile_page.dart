@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'login_page.dart';
 import 'widgets/shared_bottom_nav.dart';
 import 'dashboard_page.dart';
 import 'my_pets_page.dart';

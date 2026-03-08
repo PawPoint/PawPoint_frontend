@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pawpoint_mobileapp/models/appointment_model.dart';
 import 'package:pawpoint_mobileapp/presentation/profile_page.dart';
+import 'dashboard_page.dart';
+import 'my_pets_page.dart';
+import 'book_now_page.dart';
 import 'widgets/shared_bottom_nav.dart';
 
 // ── Doctor image map ──────────────────────────────────────────────────────────
@@ -122,17 +125,37 @@ class _AppointmentsPageState extends State<AppointmentsPage>
 
   void _onNavTapped(int index) {
     if (index == 3) return; // already here
-    setState(() => _selectedIndex = index);
-    Navigator.pop(context);
-    if (index == 4){
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardPage()),
+      );
+      return;
+    }
+    if (index == 1) {
+      setState(() => _selectedIndex = 1);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MyPetsPage()),
+      ).then((_) => setState(() => _selectedIndex = 3));
+      return;
+    }
+    if (index == 2) {
+      setState(() => _selectedIndex = 2);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const BookNowPage()),
+      ).then((_) => setState(() => _selectedIndex = 3));
+      return;
+    }
+    if (index == 4) {
       setState(() => _selectedIndex = 4);
       Navigator.push(
-      context, 
-      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+        context,
+        MaterialPageRoute(builder: (_) => const ProfileScreen()),
       ).then((_) => setState(() => _selectedIndex = 3));
     }
   }
-    
 
   // ── Tab content ────────────────────────────────────────────────────────────
 

@@ -55,7 +55,10 @@ class AboutUsPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionTitle('What We Offer', icon: Icons.calendar_today),
+                    _buildSectionTitle(
+                      'What We Offer',
+                      icon: Icons.calendar_today,
+                    ),
                     const Divider(),
                     const SizedBox(height: 10),
                     _buildFeatureItem(
@@ -78,18 +81,20 @@ class AboutUsPage extends StatelessWidget {
             // 4. Advantage Section
             _buildCard(
               title: 'The PawPoint Advantage',
-              content: '• Convenience: Book appointments anytime.\n'
-                       '• Records: Keep your pet\'s medical history secure.\n'
-                       '• Expertise: Direct access to qualified veterinarians.',
+              content:
+                  '• Convenience: Book appointments anytime.\n'
+                  '• Records: Keep your pet\'s medical history secure.\n'
+                  '• Expertise: Direct access to qualified veterinarians.',
               icon: Icons.star,
             ),
 
             // 5. Contact Section
             _buildCard(
               title: 'Visit Us',
-              content: 'Address: Jugan, Consolacion\n'
-                       'Phone: +63 567 890 9876\n'
-                       'Hours: Mon - Sat, 8:00 AM - 5:00 PM',
+              content:
+                  'Address: Jugan, Consolacion\n'
+                  'Phone: +63 567 890 9876\n'
+                  'Hours: Mon - Sat, 8:00 AM - 5:00 PM',
               icon: Icons.location_on,
             ),
 
