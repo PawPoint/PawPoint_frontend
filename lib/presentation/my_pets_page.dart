@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -45,11 +46,11 @@ class _MyPetsPageState extends State<MyPetsPage> {
       ).then((_) => setState(() => _selectedIndex = 1));
       return;
     }
-    if (index == 4){
+    if (index == 4) {
       setState(() => _selectedIndex = 4);
       Navigator.push(
-      context, 
-      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+        context,
+        MaterialPageRoute(builder: (_) => const ProfileScreen()),
       ).then((_) => setState(() => _selectedIndex = 1));
     }
     setState(() => _selectedIndex = index);
@@ -179,38 +180,35 @@ class _MyPetsPageState extends State<MyPetsPage> {
 
             // ── Add Button ──────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric( horizontal: 45, vertical:25),
+              padding: const EdgeInsets.symmetric(horizontal: 45, vertical: 25),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   SizedBox(
                     width: 56,
                     height: 52,
-                    child: ElevatedButton(onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const SelectPetTypePage(),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SelectPetTypePage(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: EdgeInsets.zero,
+                        shape: const StadiumBorder(),
                       ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: EdgeInsets.zero,
-                    shape: const StadiumBorder(),
+                      child: const Icon(Icons.add, size: 24),
+                    ),
                   ),
-                  child: const Icon(
-                    Icons
-                        .add, 
-                    size: 24,
-                  ),
-                ),
-                ),
                 ],
-                  ),
               ),
+            ),
           ],
         ),
       ),
@@ -252,9 +250,11 @@ class _PetListTile extends StatelessWidget {
             ),
             clipBehavior: Clip.hardEdge,
             child: pet.imageUrl != null && pet.imageUrl!.isNotEmpty
-                ? Image.network(
-                    pet.imageUrl!,
+                ? Image.memory(
+                    base64Decode(pet.imageUrl!),
                     fit: BoxFit.cover,
+                    width: 64,
+                    height: 64,
                     errorBuilder: (_, __, ___) => const Icon(
                       Icons.pets_rounded,
                       size: 28,
@@ -292,7 +292,7 @@ class _PetListTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  pet.age,
+                  '${pet.age} yrs old',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: Colors.black45,
