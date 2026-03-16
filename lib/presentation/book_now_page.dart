@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawpoint_mobileapp/models/appointment_model.dart';
+import 'package:pawpoint_mobileapp/models/pet_model.dart';
 import 'package:pawpoint_mobileapp/presentation/profile_page.dart';
 import 'widgets/shared_bottom_nav.dart';
 import 'booking_confirmation_page.dart';
@@ -26,11 +29,50 @@ class _BookNowPageState extends State<BookNowPage> {
   String? _selectedDoctor;
   DateTime? _selectedDateTime;
 
+  // User's registered pets (alive only)
+  List<PetModel> _userPets = [];
+  bool _isLoadingPets = true;
+
   @override
   void initState() {
     super.initState();
     _selectedDoctor = widget.initialDoctor;
     _selectedService = widget.initialService;
+    _loadUserPets();
+  }
+
+  /// Loads the current user's registered pets from Firestore
+  Future<void> _loadUserPets() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() => _isLoadingPets = false);
+      return;
+    }
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('pets')
+          .orderBy('name')
+          .get();
+
+      final pets = snapshot.docs
+          .map((doc) => PetModel.fromMap(doc.id, doc.data()))
+          .where((pet) => !pet.isDeceased) // Only show alive pets
+          .toList();
+
+      if (mounted) {
+        setState(() {
+          _userPets = pets;
+          _isLoadingPets = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingPets = false);
+      }
+    }
   }
 
   final List<String> _services = [
@@ -42,15 +84,6 @@ class _BookNowPageState extends State<BookNowPage> {
     'Quick Grooming',
     'Special Treatments',
     'Full Grooming Packages',
-  ];
-
-  final List<String> _pets = [
-    'Dog',
-    'Cat',
-    'Bird',
-    'Rabbit',
-    'Hamster',
-    'Other',
   ];
 
   final List<String> _doctors = [
@@ -147,7 +180,10 @@ class _BookNowPageState extends State<BookNowPage> {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const MyPetsPage()),
-      ).then((_) => setState(() => _selectedIndex = 4));
+      ).then((_) {
+        _loadUserPets(); // Refresh pets when coming back
+        setState(() => _selectedIndex = 2);
+      });
       return;
     }
     if (index == 3) {
@@ -157,18 +193,21 @@ class _BookNowPageState extends State<BookNowPage> {
         MaterialPageRoute(builder: (_) => const AppointmentsPage()),
       ).then((_) => setState(() => _selectedIndex = 2));
       return;
-    } 
-    if (index == 4){
+    }
+    if (index == 4) {
       setState(() => _selectedIndex = 4);
       Navigator.push(
-      context, 
-      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+        context,
+        MaterialPageRoute(builder: (_) => const ProfileScreen()),
       ).then((_) => setState(() => _selectedIndex = 2));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Build pet name list for the dropdown
+    final List<String> petNames = _userPets.map((p) => p.name).toList();
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -236,13 +275,75 @@ class _BookNowPageState extends State<BookNowPage> {
                           ),
                           const SizedBox(height: 14),
 
-                          // Pet dropdown
-                          _DropdownField(
-                            hint: 'Pet',
-                            value: _selectedPet,
-                            items: _pets,
-                            onChanged: (v) => setState(() => _selectedPet = v),
-                          ),
+                          // Pet dropdown — now uses registered pets
+                          _isLoadingPets
+                              ? Container(
+                                  height: 52,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Loading pets...',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            color: Colors.black38,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.black38,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : petNames.isEmpty
+                              ? Container(
+                                  height: 52,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'No pets registered yet',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            color: Colors.black38,
+                                          ),
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.pets_rounded,
+                                        size: 20,
+                                        color: Colors.black26,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : _DropdownField(
+                                  hint: 'Pet',
+                                  value: _selectedPet,
+                                  items: petNames,
+                                  onChanged: (v) =>
+                                      setState(() => _selectedPet = v),
+                                ),
                           const SizedBox(height: 14),
 
                           // Doctor dropdown
