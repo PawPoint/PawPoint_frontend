@@ -3,13 +3,20 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:pawpoint_mobileapp/models/pet_model.dart';
 
 class AddPetPage extends StatefulWidget {
   final String petType;
 
-  const AddPetPage({super.key, required this.petType});
+  /// If provided, the page opens in **edit mode** with fields pre-filled.
+  final PetModel? editPet;
+
+  const AddPetPage({super.key, required this.petType, this.editPet});
+
+  bool get isEditMode => editPet != null;
 
   @override
   State<AddPetPage> createState() => _AddPetPageState();
@@ -30,6 +37,53 @@ class _AddPetPageState extends State<AddPetPage> {
   // ── Image Picker ──────────────────────────────────────────────────
   Uint8List? _pickedImageBytes;
   final ImagePicker _imagePicker = ImagePicker();
+
+  /// Existing image from Firestore (base64 string)
+  String? _existingImageBase64;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill fields if in edit mode
+    if (widget.isEditMode) {
+      final pet = widget.editPet!;
+      _nameController.text = pet.name;
+      _breedController.text = pet.breed;
+      _heightController.text = pet.height;
+      _weightController.text = pet.weight;
+      _birthdayController.text = pet.birthday;
+      _characteristicsController.text = pet.characteristics;
+      _selectedGender = pet.gender.isNotEmpty ? pet.gender : null;
+      _existingImageBase64 = pet.imageUrl;
+      // Auto-calculate age from existing birthday
+      _updateAgeFromBirthday();
+    }
+  }
+
+  /// Calculates age in months from the birthday text field and updates the age controller
+  void _updateAgeFromBirthday() {
+    final text = _birthdayController.text.trim();
+    if (text.isEmpty) {
+      _ageController.text = '';
+      return;
+    }
+    try {
+      final parts = text.split('-');
+      final birthDate = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
+      final now = DateTime.now();
+      int months =
+          (now.year - birthDate.year) * 12 + (now.month - birthDate.month);
+      if (now.day < birthDate.day) months--;
+      if (months < 0) months = 0;
+      _ageController.text = months.toString();
+    } catch (_) {
+      _ageController.text = '';
+    }
+  }
 
   Future<void> _showImageSourceSheet() async {
     showModalBottomSheet(
@@ -78,7 +132,9 @@ class _AddPetPageState extends State<AddPetPage> {
                   _pickImage();
                 },
               ),
-              if (_pickedImageBytes != null)
+              if (_pickedImageBytes != null ||
+                  (_existingImageBase64 != null &&
+                      _existingImageBase64!.isNotEmpty))
                 ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: Color(0xFFFFEBEE),
@@ -90,7 +146,10 @@ class _AddPetPageState extends State<AddPetPage> {
                   ),
                   onTap: () {
                     Navigator.pop(ctx);
-                    setState(() => _pickedImageBytes = null);
+                    setState(() {
+                      _pickedImageBytes = null;
+                      _existingImageBase64 = null;
+                    });
                   },
                 ),
             ],
@@ -110,7 +169,10 @@ class _AddPetPageState extends State<AddPetPage> {
       );
       if (xfile != null) {
         final bytes = await xfile.readAsBytes();
-        setState(() => _pickedImageBytes = bytes);
+        setState(() {
+          _pickedImageBytes = bytes;
+          _existingImageBase64 = null; // New image replaces old
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -125,9 +187,11 @@ class _AddPetPageState extends State<AddPetPage> {
   }
 
   /// Convert picked image bytes to Base64 string for Firestore storage
-  String _encodeImageToBase64() {
-    if (_pickedImageBytes == null) return '';
-    return base64Encode(_pickedImageBytes!);
+  String _getImageBase64() {
+    if (_pickedImageBytes != null) {
+      return base64Encode(_pickedImageBytes!);
+    }
+    return _existingImageBase64 ?? '';
   }
 
   @override
@@ -144,11 +208,23 @@ class _AddPetPageState extends State<AddPetPage> {
 
   // ── Calendar Date Picker Function ──────────────────────────────────
   Future<void> _selectBirthday(BuildContext context) async {
+    DateTime initialDate = DateTime.now();
+    if (_birthdayController.text.isNotEmpty) {
+      try {
+        final parts = _birthdayController.text.split('-');
+        initialDate = DateTime(
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+          int.parse(parts[2]),
+        );
+      } catch (_) {}
+    }
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000), // Earliest year they can pick
-      lastDate: DateTime.now(), // Cannot pick a future date
+      initialDate: initialDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -165,15 +241,14 @@ class _AddPetPageState extends State<AddPetPage> {
 
     if (picked != null) {
       setState(() {
-        // Formats date as YYYY-MM-DD perfectly for Firestore
         _birthdayController.text =
             "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+        _updateAgeFromBirthday();
       });
     }
   }
 
   // ── Backend API base URL ──────────────────────────────────────────
-  // Use localhost for web/desktop, 10.0.2.2 for Android emulator
   static const String _baseUrl = 'http://localhost:8000';
 
   Future<void> _savePet() async {
@@ -181,11 +256,12 @@ class _AddPetPageState extends State<AddPetPage> {
     final breed = _breedController.text.trim();
     final gender = _selectedGender ?? '';
     final ageText = _ageController.text.trim();
+    final birthday = _birthdayController.text.trim();
 
-    if (name.isEmpty || breed.isEmpty || gender.isEmpty || ageText.isEmpty) {
+    if (name.isEmpty || breed.isEmpty || gender.isEmpty || birthday.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please fill in Name, Breed, Gender, and Age.'),
+          content: Text('Please fill in Name, Breed, Gender, and Birthday.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -198,41 +274,79 @@ class _AddPetPageState extends State<AddPetPage> {
     setState(() => _isSaving = true);
 
     try {
-      // Build the pet data payload matching the backend PetModel
-      final Map<String, dynamic> petData = {
-        'petType': widget.petType,
-        'name': name,
-        'breed': breed,
-        'gender': gender,
-        'age': int.tryParse(ageText),
-        'height': double.tryParse(_heightController.text.trim()),
-        'weight': double.tryParse(_weightController.text.trim()),
-        'birthday': _birthdayController.text.trim(),
-        'characteristics': _characteristicsController.text.trim(),
-        'imageUrl': _encodeImageToBase64(),
-      };
+      if (widget.isEditMode) {
+        // ── UPDATE existing pet directly in Firestore ──────────────
+        final petData = {
+          'petType': widget.petType,
+          'name': name,
+          'breed': breed,
+          'gender': gender,
+          'age': int.tryParse(ageText) ?? ageText,
+          'height':
+              double.tryParse(_heightController.text.trim()) ??
+              _heightController.text.trim(),
+          'weight':
+              double.tryParse(_weightController.text.trim()) ??
+              _weightController.text.trim(),
+          'birthday': _birthdayController.text.trim(),
+          'characteristics': _characteristicsController.text.trim(),
+          'imageUrl': _getImageBase64(),
+        };
 
-      // Send POST request to the backend API
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/users/${user.uid}/pets'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(petData),
-      );
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('pets')
+            .doc(widget.editPet!.id)
+            .update(petData);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('$name has been added! 🐾'),
+              content: Text('$name has been updated! 🐾'),
               backgroundColor: Colors.black87,
             ),
           );
+          // Pop twice to go back to my_pets_page (skipping pet_info_page)
+          Navigator.pop(context);
           Navigator.pop(context);
         }
       } else {
-        throw Exception(
-          'Server error: ${response.statusCode} - ${response.body}',
+        // ── ADD new pet via backend API ────────────────────────────
+        final Map<String, dynamic> petData = {
+          'petType': widget.petType,
+          'name': name,
+          'breed': breed,
+          'gender': gender,
+          'age': int.tryParse(ageText),
+          'height': double.tryParse(_heightController.text.trim()),
+          'weight': double.tryParse(_weightController.text.trim()),
+          'birthday': _birthdayController.text.trim(),
+          'characteristics': _characteristicsController.text.trim(),
+          'imageUrl': _getImageBase64(),
+        };
+
+        final response = await http.post(
+          Uri.parse('$_baseUrl/api/users/${user.uid}/pets'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(petData),
         );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$name has been added! 🐾'),
+                backgroundColor: Colors.black87,
+              ),
+            );
+            Navigator.pop(context);
+          }
+        } else {
+          throw Exception(
+            'Server error: ${response.statusCode} - ${response.body}',
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -248,8 +362,98 @@ class _AddPetPageState extends State<AddPetPage> {
     }
   }
 
+  /// Mark the pet as deceased in Firestore
+  Future<void> _markAsDeceased() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.favorite, color: Colors.grey[600], size: 22),
+            const SizedBox(width: 8),
+            Text(
+              'Mark as Deceased',
+              style: GoogleFonts.poppins(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to mark ${widget.editPet!.name} as deceased?\n\nThis action cannot be undone. The pet will be displayed in grayscale and can no longer be edited.',
+          style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(color: Colors.black54),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey[700],
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Confirm',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('pets')
+          .doc(widget.editPet!.id)
+          .update({'isDeceased': true});
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${widget.editPet!.name} has been marked as deceased. Rest in peace. 🕊️',
+            ),
+            backgroundColor: Colors.grey[700],
+          ),
+        );
+        // Pop back to my_pets_page
+        Navigator.pop(context);
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isEdit = widget.isEditMode;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -269,7 +473,9 @@ class _AddPetPageState extends State<AddPetPage> {
                     ),
                   ),
                   Text(
-                    'Add ${widget.petType}',
+                    isEdit
+                        ? 'Edit ${widget.editPet!.name}'
+                        : 'Add ${widget.petType}',
                     style: GoogleFonts.poppins(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -300,18 +506,7 @@ class _AddPetPageState extends State<AddPetPage> {
                           border: Border.all(color: Colors.black26, width: 2),
                         ),
                         clipBehavior: Clip.hardEdge,
-                        child: _pickedImageBytes != null
-                            ? Image.memory(
-                                _pickedImageBytes!,
-                                fit: BoxFit.cover,
-                                width: 100,
-                                height: 100,
-                              )
-                            : const Icon(
-                                Icons.add,
-                                size: 40,
-                                color: Colors.black54,
-                              ),
+                        child: _buildPhotoWidget(),
                       ),
                     ),
 
@@ -378,15 +573,15 @@ class _AddPetPageState extends State<AddPetPage> {
                           child: _FormField(
                             controller: _ageController,
                             hint: 'Age',
-                            keyboardType:
-                                TextInputType.number, // Number keyboard
+                            readOnly: true,
+                            suffixText: 'mos',
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 14),
 
-                    // ── Height & Weight (With suffixes & number kb) ──
+                    // ── Height & Weight ──────────────────────────
                     Row(
                       children: [
                         Expanded(
@@ -394,7 +589,7 @@ class _AddPetPageState extends State<AddPetPage> {
                             controller: _heightController,
                             hint: 'Height',
                             keyboardType: TextInputType.number,
-                            suffixText: 'cm', // Adds 'cm' to the field
+                            suffixText: 'cm',
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -403,7 +598,7 @@ class _AddPetPageState extends State<AddPetPage> {
                             controller: _weightController,
                             hint: 'Weight',
                             keyboardType: TextInputType.number,
-                            suffixText: 'kg', // Adds 'kg' to the field
+                            suffixText: 'lbs',
                           ),
                         ),
                       ],
@@ -414,8 +609,8 @@ class _AddPetPageState extends State<AddPetPage> {
                     _FormField(
                       controller: _birthdayController,
                       hint: 'Birthday (YYYY-MM-DD)',
-                      readOnly: true, // Prevents manual typing
-                      onTap: () => _selectBirthday(context), // Opens calendar
+                      readOnly: true,
+                      onTap: () => _selectBirthday(context),
                     ),
                     const SizedBox(height: 14),
 
@@ -429,7 +624,7 @@ class _AddPetPageState extends State<AddPetPage> {
                         controller: _characteristicsController,
                         maxLines: 4,
                         decoration: InputDecoration(
-                          hintText: '+ Characteristics',
+                          hintText: '+ Characteristics (comma separated)',
                           hintStyle: GoogleFonts.poppins(
                             fontSize: 13,
                             color: Colors.black38,
@@ -453,46 +648,107 @@ class _AddPetPageState extends State<AddPetPage> {
               ),
             ),
 
-            // ── Save Button ────────────────────────────────────────
+            // ── Bottom Buttons ──────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(40, 10, 40, 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _savePet,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    disabledBackgroundColor: Colors.black.withOpacity(0.4),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+              child: Row(
+                children: [
+                  // ── Deceased button (only in edit mode) ──────────
+                  if (isEdit) ...[
+                    Expanded(
+                      child: SizedBox(
+                        height: 52,
+                        child: OutlinedButton(
+                          onPressed: _isSaving ? null : _markAsDeceased,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.grey[700],
+                            side: BorderSide(
+                              color: Colors.grey[400]!,
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
                           ),
-                        )
-                      : Text(
-                          'SAVE',
-                          style: GoogleFonts.poppins(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
+                          child: Text(
+                            'Deceased',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+
+                  // ── Save / Update button ────────────────────────
+                  Expanded(
+                    child: SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _savePet,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          disabledBackgroundColor: Colors.black.withOpacity(
+                            0.4,
+                          ),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                isEdit ? 'UPDATE' : 'SAVE',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// Build the photo circle widget — handles new picks, existing base64, and empty state
+  Widget _buildPhotoWidget() {
+    if (_pickedImageBytes != null) {
+      return Image.memory(
+        _pickedImageBytes!,
+        fit: BoxFit.cover,
+        width: 100,
+        height: 100,
+      );
+    }
+    if (_existingImageBase64 != null && _existingImageBase64!.isNotEmpty) {
+      return Image.memory(
+        base64Decode(_existingImageBase64!),
+        fit: BoxFit.cover,
+        width: 100,
+        height: 100,
+        errorBuilder: (_, __, ___) =>
+            const Icon(Icons.add, size: 40, color: Colors.black54),
+      );
+    }
+    return const Icon(Icons.add, size: 40, color: Colors.black54);
   }
 }
 
@@ -524,13 +780,13 @@ class _FormField extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
-        keyboardType: keyboardType, // Activates number keyboard if passed
-        readOnly: readOnly, // Locks typing if it's a date picker
-        onTap: onTap, // Triggers date picker when tapped
+        keyboardType: keyboardType,
+        readOnly: readOnly,
+        onTap: onTap,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: GoogleFonts.poppins(fontSize: 13, color: Colors.black38),
-          suffixText: suffixText, // Shows 'cm' or 'kg'
+          suffixText: suffixText,
           suffixStyle: GoogleFonts.poppins(fontSize: 13, color: Colors.black38),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
