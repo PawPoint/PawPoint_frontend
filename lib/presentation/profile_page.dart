@@ -5,6 +5,7 @@ import 'dashboard_page.dart';
 import 'my_pets_page.dart';
 import 'book_now_page.dart';
 import 'appointments_page.dart';
+import 'loginsignup_page.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -160,18 +161,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 iconColor: Colors.black,
                 textColor: Colors.red,
                 onTap: () async {
-                  // Firebase Sign Out Logic!
-                  await FirebaseAuth.instance.signOut();
-                  
-                  if (context.mounted) {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        // TODO: Change this to your actual login/welcome screen class name
-                        builder: (context) => const Placeholder(), 
+                  // Show confirmation dialog before logging out
+                  final shouldLogout = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      (route) => false, 
-                    );
+                      title: const Text(
+                        'Logout',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      content: const Text(
+                        'Are you sure you want to logout?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text(
+                            'Logout',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (shouldLogout == true) {
+                    await FirebaseAuth.instance.signOut();
+
+                    if (context.mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginsignupPage(),
+                        ),
+                        (route) => false,
+                      );
+                    }
                   }
                 },
               ),

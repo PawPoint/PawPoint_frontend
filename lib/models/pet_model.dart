@@ -10,6 +10,7 @@ class PetModel {
   final String birthday;
   final String characteristics;
   final String? imageUrl;
+  final bool isDeceased;
 
   const PetModel({
     this.id,
@@ -23,6 +24,7 @@ class PetModel {
     this.birthday = '',
     this.characteristics = '',
     this.imageUrl,
+    this.isDeceased = false,
   });
 
   /// Create from Firestore document snapshot
@@ -33,13 +35,13 @@ class PetModel {
       name: data['name'] ?? '',
       breed: data['breed'] ?? '',
       gender: data['gender'] ?? '',
-      // ✅ Use 'data' consistently and keep your .toString() safety
-      age: data['age']?.toString() ?? '', 
-      height: data['height']?.toString() ?? '',
-      weight: data['weight']?.toString() ?? '',
+      age: data['age'] ?? '',
+      height: data['height'] ?? '',
+      weight: data['weight'] ?? '',
       birthday: data['birthday'] ?? '',
       characteristics: data['characteristics'] ?? '',
       imageUrl: data['imageUrl'],
+      isDeceased: data['isDeceased'] ?? false,
     );
   }
 
@@ -56,6 +58,7 @@ class PetModel {
       'birthday': birthday,
       'characteristics': characteristics,
       'imageUrl': imageUrl,
+      'isDeceased': isDeceased,
     };
   }
 }
