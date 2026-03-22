@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert'; // Required for jsonEncode/jsonDecode
+import 'package:http/http.dart' as http; // Required for API calls
 import 'package:pawpoint_mobileapp/presentation/dashboard_page.dart';
+import 'package:pawpoint_mobileapp/Admin/admin_dashboard_page.dart';
+// Ensure you create this file or rename it to match your admin page file
+// import 'package:pawpoint_mobileapp/presentation/admin_dashboard_page.dart'; 
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -36,22 +40,16 @@ class _LoginPage extends State<LoginPage> {
                     icon: const Icon(Icons.arrow_back_ios, size: 20),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Align(
-                    alignment: const Alignment(0, 0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.asset(
-                          "assets/images/LOGO.png",
-                          width: 250,
-                          fit: BoxFit.contain,
-                        ),
-                      ],
+                  Expanded(
+                    child: Center(
+                      child: Image.asset(
+                        "assets/images/LOGO.png",
+                        width: 250,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
-                  const SizedBox(
-                    width: 48,
-                  ), // Balancing space for the back button
+                  const SizedBox(width: 48), // Balancing space
                 ],
               ),
 
@@ -59,9 +57,8 @@ class _LoginPage extends State<LoginPage> {
 
               Stack(
                 alignment: Alignment.bottomCenter,
-                clipBehavior: Clip.none, // This ensures the cat isn't cut off
+                clipBehavior: Clip.none,
                 children: [
-                  // 1. The Email TextField (The base layer)
                   TextField(
                     controller: _emailController,
                     decoration: InputDecoration(
@@ -74,12 +71,14 @@ class _LoginPage extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(55),
                         borderSide: const BorderSide(color: Colors.black),
                       ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(55),
+                        borderSide: const BorderSide(color: Colors.black, width: 2),
+                      ),
                     ),
                   ),
-                  // The Cat Image positioned slightly above the text field
                   Positioned(
-                    bottom:
-                        -30, // Adjust this to make the cat sit perfectly on the line
+                    bottom: -30,
                     child: Image.asset(
                       "assets/images/c1-removebg-preview.png",
                       width: 350,
@@ -91,7 +90,6 @@ class _LoginPage extends State<LoginPage> {
 
               const SizedBox(height: 15),
 
-              // 3. Password Field
               TextField(
                 controller: _passwordController,
                 obscureText: true,
@@ -105,20 +103,21 @@ class _LoginPage extends State<LoginPage> {
                     borderRadius: BorderRadius.circular(50),
                     borderSide: const BorderSide(color: Colors.black),
                   ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(50),
+                    borderSide: const BorderSide(color: Colors.black, width: 2),
+                  ),
                 ),
               ),
 
               const SizedBox(height: 40),
 
-              // 4. Login Button with Shadow and Firebase Auth Logic
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(50),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(
-                        0.3,
-                      ), // Added opacity so it's a valid shadow
+                      color: Colors.black.withOpacity(0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
@@ -126,55 +125,66 @@ class _LoginPage extends State<LoginPage> {
                 ),
                 child: ElevatedButton(
                   onPressed: () async {
-                    // Grab the text from your input fields
                     final email = _emailController.text.trim();
                     final password = _passwordController.text.trim();
 
-                    // Prevent empty submissions
                     if (email.isEmpty || password.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Please enter both email and password.",
-                          ),
-                        ),
+                        const SnackBar(content: Text("Please enter both email and password.")),
                       );
                       return;
                     }
 
                     try {
-                      // Check credentials against the database
-                      await FirebaseAuth.instance.signInWithEmailAndPassword(
-                        email: email,
-                        password: password,
+                      // Update this URL based on your environment:
+                      // Android Emulator: http://10.0.2.2:8000/api/auth/login
+                      // iOS/Chrome/Desktop: http://127.0.0.1:8000/api/auth/login
+                      // Use localhost for Web testing
+                      final response = await http.post(
+                        Uri.parse('http://localhost:8000/api/auth/login'), 
+                        headers: {'Content-Type': 'application/json'},
+                        body: jsonEncode({
+                          'email': email,
+                          'password': password,
+                        }),
                       );
 
-                      // If successful, navigate to Dashboard.
-                      // pushReplacement prevents them from going back to login via the back button
-                      if (context.mounted) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const DashboardPage(),
-                          ),
-                        );
-                      }
-                    } on FirebaseAuthException catch (e) {
-                      // Catch Firebase errors if credentials don't match
-                      String errorMessage = "Login failed. Please try again.";
-                      if (e.code == 'user-not-found' ||
-                          e.code == 'wrong-password' ||
-                          e.code == 'invalid-credential') {
-                        errorMessage = "Incorrect email or password.";
-                      }
+                      if (response.statusCode == 200) {
+                        final data = jsonDecode(response.body);
+                        String role = data['role'];
 
-                      // Show the error message to the user
+                        if (context.mounted) {
+                          if (role == 'admin') {
+                            // 1. Change DashboardPage() to AdminDashboardPage() once you create it
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => const AdminDashboardPage()), 
+                            );
+                            
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Welcome back, Administrator"), backgroundColor: Colors.green),
+                            );
+                          } else {
+                            // 2. Regular users go here
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => const DashboardPage()),
+                            );
+                          }
+                        }
+                      } else {
+                        final errorData = jsonDecode(response.body);
+                        String errorMessage = errorData['detail'] ?? "Login failed.";
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+                          );
+                        }
+                      }
+                    } catch (e) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(errorMessage),
-                            backgroundColor: Colors.red,
-                          ),
+                          SnackBar(content: Text("Connection error: Make sure backend is running!"), backgroundColor: Colors.red),
                         );
                       }
                     }
