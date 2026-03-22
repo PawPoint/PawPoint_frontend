@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawpoint_mobileapp/presentation/dashboard_page.dart';
+import 'package:pawpoint_mobileapp/auth/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,6 +12,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPage extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -110,7 +111,7 @@ class _LoginPage extends State<LoginPage> {
 
               const SizedBox(height: 40),
 
-              // 4. Login Button with Shadow and Firebase Auth Logic
+              // 4. Login Button with Shadow and Backend Auth Logic
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(50),
@@ -125,72 +126,84 @@ class _LoginPage extends State<LoginPage> {
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: () async {
-                    // Grab the text from your input fields
-                    final email = _emailController.text.trim();
-                    final password = _passwordController.text.trim();
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          // Grab the text from your input fields
+                          final email = _emailController.text.trim();
+                          final password = _passwordController.text.trim();
 
-                    // Prevent empty submissions
-                    if (email.isEmpty || password.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Please enter both email and password.",
-                          ),
-                        ),
-                      );
-                      return;
-                    }
+                          // Prevent empty submissions
+                          if (email.isEmpty || password.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  "Please enter both email and password.",
+                                ),
+                              ),
+                            );
+                            return;
+                          }
 
-                    try {
-                      // Check credentials against the database
-                      await FirebaseAuth.instance.signInWithEmailAndPassword(
-                        email: email,
-                        password: password,
-                      );
+                          setState(() => _isLoading = true);
 
-                      // If successful, navigate to Dashboard.
-                      // pushReplacement prevents them from going back to login via the back button
-                      if (context.mounted) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const DashboardPage(),
-                          ),
-                        );
-                      }
-                    } on FirebaseAuthException catch (e) {
-                      // Catch Firebase errors if credentials don't match
-                      String errorMessage = "Login failed. Please try again.";
-                      if (e.code == 'user-not-found' ||
-                          e.code == 'wrong-password' ||
-                          e.code == 'invalid-credential') {
-                        errorMessage = "Incorrect email or password.";
-                      }
+                          try {
+                            // Call the backend API through AuthService
+                            final user = await AuthService().login(
+                              email: email,
+                              password: password,
+                            );
 
-                      // Show the error message to the user
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(errorMessage),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  },
+                            // If successful, navigate to Dashboard.
+                            if (context.mounted && user != null) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const DashboardPage(),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            // Show the error message from the backend
+                            if (context.mounted) {
+                              String errorMessage = e.toString();
+                              // Clean up the Exception prefix
+                              if (errorMessage.startsWith('Exception: ')) {
+                                errorMessage = errorMessage.substring(11);
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(errorMessage),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isLoading = false);
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
+                    disabledBackgroundColor: Colors.black.withOpacity(0.4),
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 60),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(50),
                     ),
                   ),
-                  child: const Text(
-                    "LOGIN",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          "LOGIN",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                 ),
               ),
 

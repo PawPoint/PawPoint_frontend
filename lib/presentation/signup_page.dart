@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -128,33 +127,10 @@ class _SignupPageState extends State<SignupPage>
         _showSnack('Registration failed. Please try again.');
       }
     } catch (e) {
-      String errorMessage = 'Registration failed. Please try again.';
-      if (e is FirebaseAuthException) {
-        switch (e.code) {
-          case 'email-already-in-use':
-            errorMessage =
-                'This email is already registered. Please log in instead.';
-            break;
-          case 'invalid-email':
-            errorMessage = 'The email address is not valid.';
-            break;
-          case 'weak-password':
-            errorMessage = 'Password is too weak. Use at least 8 characters.';
-            break;
-          case 'network-request-failed':
-            errorMessage =
-                'Network error. Please check your internet connection.';
-            break;
-          default:
-            errorMessage = e.message ?? 'An error occurred. Please try again.';
-        }
-      } else if (e is FirebaseException) {
-        if (e.code == 'permission-denied') {
-          errorMessage = 'Database permission error. Please contact support.';
-        } else {
-          errorMessage =
-              'Database error [${e.code}]: ${e.message ?? 'Unknown error'}';
-        }
+      String errorMessage = e.toString();
+      // Clean up the Exception prefix
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring(11);
       }
       _showSnack(errorMessage);
     } finally {

@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawpoint_mobileapp/models/pet_model.dart';
 import 'package:pawpoint_mobileapp/presentation/profile_page.dart';
+import 'package:pawpoint_mobileapp/presentation/pet_info_page.dart';
 import 'select_pet_type_page.dart';
 import 'widgets/shared_bottom_nav.dart';
 import 'book_now_page.dart';
@@ -45,11 +47,11 @@ class _MyPetsPageState extends State<MyPetsPage> {
       ).then((_) => setState(() => _selectedIndex = 1));
       return;
     }
-    if (index == 4){
+    if (index == 4) {
       setState(() => _selectedIndex = 4);
       Navigator.push(
-      context, 
-      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+        context,
+        MaterialPageRoute(builder: (_) => const ProfileScreen()),
       ).then((_) => setState(() => _selectedIndex = 1));
     }
     setState(() => _selectedIndex = index);
@@ -179,38 +181,35 @@ class _MyPetsPageState extends State<MyPetsPage> {
 
             // ── Add Button ──────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric( horizontal: 45, vertical:25),
+              padding: const EdgeInsets.symmetric(horizontal: 45, vertical: 25),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   SizedBox(
                     width: 56,
                     height: 52,
-                    child: ElevatedButton(onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const SelectPetTypePage(),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SelectPetTypePage(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: EdgeInsets.zero,
+                        shape: const StadiumBorder(),
                       ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: EdgeInsets.zero,
-                    shape: const StadiumBorder(),
+                      child: const Icon(Icons.add, size: 24),
+                    ),
                   ),
-                  child: const Icon(
-                    Icons
-                        .add, 
-                    size: 24,
-                  ),
-                ),
-                ),
                 ],
-                  ),
               ),
+            ),
           ],
         ),
       ),
@@ -230,13 +229,48 @@ class _PetListTile extends StatelessWidget {
 
   const _PetListTile({required this.pet});
 
+  /// Calculate age from birthday, showing months or days as appropriate
+  String _calculateAge() {
+    if (pet.birthday.isEmpty) {
+      final years = int.tryParse(pet.age) ?? 0;
+      return '$years yrs old';
+    }
+    try {
+      final parts = pet.birthday.split('-');
+      final birthDate = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
+      final now = DateTime.now();
+      int months =
+          (now.year - birthDate.year) * 12 + (now.month - birthDate.month);
+      if (now.day < birthDate.day) months--;
+      if (months < 0) months = 0;
+
+      if (months == 0) {
+        final days = now.difference(birthDate).inDays;
+        if (days <= 0) return '< 1 day old';
+        if (days == 1) return '1 day old';
+        return '$days days old';
+      }
+
+      return '$months mos old';
+    } catch (_) {
+      final years = int.tryParse(pet.age) ?? 0;
+      return '$years yrs old';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isDeceased = pet.isDeceased;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: isDeceased ? const Color(0xFFE8E8E8) : const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -248,24 +282,13 @@ class _PetListTile extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: const Color(0xFFE0E0E0),
-              border: Border.all(color: const Color(0xFFCCCCCC), width: 2),
+              border: Border.all(
+                color: isDeceased ? Colors.grey[400]! : const Color(0xFFCCCCCC),
+                width: 2,
+              ),
             ),
             clipBehavior: Clip.hardEdge,
-            child: pet.imageUrl != null && pet.imageUrl!.isNotEmpty
-                ? Image.network(
-                    pet.imageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.pets_rounded,
-                      size: 28,
-                      color: Colors.black26,
-                    ),
-                  )
-                : const Icon(
-                    Icons.pets_rounded,
-                    size: 28,
-                    color: Colors.black26,
-                  ),
+            child: _buildAvatar(isDeceased),
           ),
 
           const SizedBox(width: 16),
@@ -280,7 +303,7 @@ class _PetListTile extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                    color: isDeceased ? Colors.grey : Colors.black,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -288,31 +311,75 @@ class _PetListTile extends StatelessWidget {
                   pet.gender,
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: Colors.black45,
+                    color: isDeceased ? Colors.grey : Colors.black45,
                   ),
                 ),
                 Text(
-                  pet.age,
+                  _calculateAge(),
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: Colors.black45,
+                    color: isDeceased ? Colors.grey : Colors.black45,
                   ),
                 ),
               ],
             ),
           ),
 
-          // ── Paw Icon ──────────────────────────────────────────
-          Image.asset(
-            'assets/images/nav_pets.jpg',
-            width: 30,
-            height: 30,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) =>
-                const Icon(Icons.pets_rounded, size: 26, color: Colors.black26),
+          // ── Paw Icon (navigates to Pet Info) ───────────────────
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => PetInfoPage(pet: pet)),
+              );
+            },
+            child: ColorFiltered(
+              colorFilter: isDeceased
+                  ? const ColorFilter.mode(Colors.grey, BlendMode.saturation)
+                  : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
+              child: Image.asset(
+                'assets/images/nav_pets.jpg',
+                width: 30,
+                height: 30,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Icon(
+                  Icons.pets_rounded,
+                  size: 26,
+                  color: isDeceased ? Colors.grey : Colors.black26,
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildAvatar(bool isDeceased) {
+    Widget imageWidget;
+    if (pet.imageUrl != null && pet.imageUrl!.isNotEmpty) {
+      imageWidget = Image.memory(
+        base64Decode(pet.imageUrl!),
+        fit: BoxFit.cover,
+        width: 64,
+        height: 64,
+        errorBuilder: (_, __, ___) =>
+            const Icon(Icons.pets_rounded, size: 28, color: Colors.black26),
+      );
+    } else {
+      imageWidget = const Icon(
+        Icons.pets_rounded,
+        size: 28,
+        color: Colors.black26,
+      );
+    }
+
+    if (isDeceased) {
+      return ColorFiltered(
+        colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.saturation),
+        child: imageWidget,
+      );
+    }
+    return imageWidget;
   }
 }

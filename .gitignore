@@ -43,3 +43,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Flutter/Dart generated files
+pubspec.lock
+*.cmake
+*.cc
+*.swift
+# Ignore entire platform build folders if you don't need to track them
+build/
+linux/flutter/
+windows/flutter/
+macos/Flutter/

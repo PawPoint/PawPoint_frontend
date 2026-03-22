@@ -16,6 +16,8 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
+  image_picker: ^1.2.1
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:
