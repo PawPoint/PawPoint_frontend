@@ -44,7 +44,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Flutter Generated Files (Specific to Platforms)
+# Flutter Generated Files (Specific to a Platforms)
 **/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 **/ios/Runner/GeneratedPluginRegistrant.*
 **/macos/Runner/GeneratedPluginRegistrant.swift

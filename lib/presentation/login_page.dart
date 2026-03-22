@@ -162,7 +162,7 @@ class _LoginPage extends State<LoginPage> {
                             );
                             
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Welcome back, Administrator"), backgroundColor: Colors.green),
+                              const SnackBar(content: Text("Welcome back, Admin"), backgroundColor: Colors.green),
                             );
                           } else {
                             // 2. Regular users go here
