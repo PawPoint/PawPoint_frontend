@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pawpoint_mobileapp/presentation/dashboard_page.dart';
+import '../home/dashboard_page.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});

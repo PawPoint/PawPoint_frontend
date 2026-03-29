@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pawpoint_mobileapp/presentation/welcome_page.dart';
+import 'welcome_page.dart';
 
 class VerifyPage extends StatefulWidget {
   const VerifyPage({super.key});

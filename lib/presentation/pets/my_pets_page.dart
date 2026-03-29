@@ -1,16 +1,16 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 import 'package:pawpoint_mobileapp/models/pet_model.dart';
-import 'package:pawpoint_mobileapp/presentation/profile_page.dart';
-import 'package:pawpoint_mobileapp/presentation/pet_info_page.dart';
+import '../profile/profile_page.dart';
+import 'pet_info_page.dart';
 import 'select_pet_type_page.dart';
-import 'widgets/shared_bottom_nav.dart';
-import 'book_now_page.dart';
-import 'appointments_page.dart';
-import 'dashboard_page.dart';
+import '../widgets/shared_bottom_nav.dart';
+import '../appointments/book_now_page.dart';
+import '../appointments/appointments_page.dart';
+import '../home/dashboard_page.dart';
 
 class MyPetsPage extends StatefulWidget {
   const MyPetsPage({super.key});
@@ -20,7 +20,28 @@ class MyPetsPage extends StatefulWidget {
 }
 
 class _MyPetsPageState extends State<MyPetsPage> {
+  static const String _baseUrl = 'http://localhost:8000';
   int _selectedIndex = 1; // Pets tab is active
+  int _refreshKey = 0; // Increment to force-refresh the pet list
+
+  Future<List<PetModel>> _fetchPets() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return [];
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/users/${user.uid}/pets'),
+    );
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+      final List<dynamic> petList = body['pets'] ?? [];
+      return petList
+          .map((e) => PetModel.fromMap(
+                e['id'] as String? ?? '',
+                e as Map<String, dynamic>,
+              ))
+          .toList();
+    }
+    return [];
+  }
 
   void _onNavTapped(int index) {
     if (index == 1) return; // already here
@@ -66,7 +87,6 @@ class _MyPetsPageState extends State<MyPetsPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header ───────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
               child: Stack(
@@ -90,8 +110,6 @@ class _MyPetsPageState extends State<MyPetsPage> {
                 ],
               ),
             ),
-
-            // ── Pet List ─────────────────────────────────────────────
             Expanded(
               child: user == null
                   ? Center(
@@ -103,13 +121,9 @@ class _MyPetsPageState extends State<MyPetsPage> {
                         ),
                       ),
                     )
-                  : StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(user.uid)
-                          .collection('pets')
-                          .orderBy('name')
-                          .snapshots(),
+                  : FutureBuilder<List<PetModel>>(
+                      key: ValueKey(_refreshKey),
+                      future: _fetchPets(),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
@@ -120,9 +134,9 @@ class _MyPetsPageState extends State<MyPetsPage> {
                           );
                         }
 
-                        final docs = snapshot.data?.docs ?? [];
+                        final pets = snapshot.data ?? [];
 
-                        if (docs.isEmpty) {
+                        if (pets.isEmpty) {
                           return Center(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -154,15 +168,6 @@ class _MyPetsPageState extends State<MyPetsPage> {
                           );
                         }
 
-                        final pets = docs
-                            .map(
-                              (doc) => PetModel.fromMap(
-                                doc.id,
-                                doc.data() as Map<String, dynamic>,
-                              ),
-                            )
-                            .toList();
-
                         return ListView.separated(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,
@@ -178,8 +183,6 @@ class _MyPetsPageState extends State<MyPetsPage> {
                       },
                     ),
             ),
-
-            // ── Add Button ──────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 45, vertical: 25),
               child: Row(
@@ -195,7 +198,7 @@ class _MyPetsPageState extends State<MyPetsPage> {
                           MaterialPageRoute(
                             builder: (_) => const SelectPetTypePage(),
                           ),
-                        );
+                        ).then((_) => setState(() => _refreshKey++));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
@@ -213,8 +216,6 @@ class _MyPetsPageState extends State<MyPetsPage> {
           ],
         ),
       ),
-
-      // ── Bottom Nav Bar ────────────────────────────────────────────
       bottomNavigationBar: SharedBottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onNavTapped,
@@ -223,13 +224,11 @@ class _MyPetsPageState extends State<MyPetsPage> {
   }
 }
 
-// ── Pet List Tile Widget ────────────────────────────────────────────────────
 class _PetListTile extends StatelessWidget {
   final PetModel pet;
 
   const _PetListTile({required this.pet});
 
-  /// Calculate age from birthday, showing months or days as appropriate
   String _calculateAge() {
     if (pet.birthday.isEmpty) {
       final years = int.tryParse(pet.age) ?? 0;
@@ -275,7 +274,6 @@ class _PetListTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // ── Pet Photo ─────────────────────────────────────────
           Container(
             width: 64,
             height: 64,
@@ -290,10 +288,7 @@ class _PetListTile extends StatelessWidget {
             clipBehavior: Clip.hardEdge,
             child: _buildAvatar(isDeceased),
           ),
-
           const SizedBox(width: 16),
-
-          // ── Pet Details ────────────────────────────────────────
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,8 +319,6 @@ class _PetListTile extends StatelessWidget {
               ],
             ),
           ),
-
-          // ── Paw Icon (navigates to Pet Info) ───────────────────
           GestureDetector(
             onTap: () {
               Navigator.push(

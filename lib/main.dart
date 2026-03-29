@@ -3,12 +3,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 // Import your pages based on your folder structure
-import 'presentation/splashscreen.dart';
-import 'presentation/loginsignup_page.dart';
-import 'presentation/login_page.dart';
-import 'presentation/signup_page.dart';
-import 'presentation/verify_page.dart';
-import 'presentation/dashboard_page.dart';
+import 'presentation/misc/splashscreen.dart';
+import 'presentation/auth/loginsignup_page.dart';
+import 'presentation/auth/login_page.dart';
+import 'presentation/auth/signup_page.dart';
+import 'presentation/auth/verify_page.dart';
+import 'presentation/home/dashboard_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pawpoint_mobileapp/presentation/about_us_page.dart';
-import 'package:pawpoint_mobileapp/presentation/profile_page.dart';
-import 'loginsignup_page.dart';
-import 'book_now_page.dart';
-import 'appointments_page.dart';
-import 'my_pets_page.dart';
-import 'widgets/shared_bottom_nav.dart';
+import 'package:pawpoint_mobileapp/auth/appointment_service.dart';
+import 'package:pawpoint_mobileapp/auth/notification_service.dart';
+import '../info/about_us_page.dart';
+import '../info/contact_us_page.dart';
+import '../misc/notifications_page.dart';
+import '../profile/profile_page.dart';
+import '../auth/loginsignup_page.dart';
+import '../appointments/book_now_page.dart';
+import '../appointments/appointments_page.dart';
+import '../pets/my_pets_page.dart';
+import '../widgets/shared_bottom_nav.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -18,6 +22,10 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   int _selectedIndex = 0;
+  int _unreadNotifCount = 0;
+
+  final _notifService = NotificationService();
+  final _apptService = AppointmentService();
 
   final List<Map<String, String>> _experts = [
     {
@@ -84,6 +92,38 @@ class _DashboardPageState extends State<DashboardPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadUnreadCount();
+  }
+
+  Future<void> _loadUnreadCount() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    try {
+      final appointments =
+          await _apptService.getAppointments(userId: user.uid);
+      await _notifService.syncAppointmentNotifications(
+        userId: user.uid,
+        appointments: appointments,
+      );
+      final notifs =
+          await _notifService.getNotifications(userId: user.uid);
+      final adminNotifs =
+          await _notifService.getNewServiceNotifications();
+      final all = [
+        ...notifs,
+        ...adminNotifs.where((a) => !notifs.any((n) => n.id == a.id))
+      ];
+      if (mounted) {
+        setState(() {
+          _unreadNotifCount = all.where((n) => !n.isRead).length;
+        });
+      }
+    } catch (_) {}
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -106,13 +146,52 @@ class _DashboardPageState extends State<DashboardPage> {
                       height: 28,
                       fit: BoxFit.contain,
                     ),
-                    const CircleAvatar(
-                      radius: 18,
-                      backgroundColor: Color(0xFFEEEEEE),
-                      child: Icon(
-                        Icons.notifications_none_rounded,
-                        size: 20,
-                        color: Colors.black54,
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationsPage(),
+                          ),
+                        ).then((_) => _loadUnreadCount());
+                      },
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Color(0xFFEEEEEE),
+                            child: Icon(
+                              Icons.notifications_none_rounded,
+                              size: 20,
+                              color: Colors.black54,
+                            ),
+                          ),
+                          if (_unreadNotifCount > 0)
+                            Positioned(
+                              right: -2,
+                              top: -2,
+                              child: Container(
+                                width: 17,
+                                height: 17,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  _unreadNotifCount > 9
+                                      ? '9+'
+                                      : '$_unreadNotifCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ],
@@ -368,11 +447,38 @@ class _DashboardPageState extends State<DashboardPage> {
           }
         },
       ),
+
+      // ── Help / Contact Us FAB ─────────────────────────────────────
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: SizedBox(
+          width: 52,
+          height: 52,
+          child: FloatingActionButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ContactUsPage(),
+                ),
+              );
+            },
+            backgroundColor: const Color(0xFF1A1A1A),
+            elevation: 6,
+            shape: const CircleBorder(),
+            child: const Icon(
+              Icons.help_outline_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
 
-// ── Expert Card Widget ────────────────────────────────────────────────────────
 class _ExpertCard extends StatelessWidget {
   final String name;
   final String imagePath;
@@ -387,7 +493,6 @@ class _ExpertCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Circular photo with a slightly darker grey ring
           Container(
             width: 80,
             height: 80,
@@ -416,7 +521,6 @@ class _ExpertCard extends StatelessWidget {
   }
 }
 
-// ── Service Card Widget ───────────────────────────────────────────────────────
 class _ServiceCard extends StatelessWidget {
   final String title;
   final String description;
@@ -451,7 +555,6 @@ class _ServiceCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ── Text content ──────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
               child: Column(
@@ -525,8 +628,6 @@ class _ServiceCard extends StatelessWidget {
                 ],
               ),
             ),
-
-            // ── Animal image (fixed height) ───────────────────
             if (hasImage)
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
