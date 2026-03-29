@@ -94,14 +94,16 @@ class AboutUsPage extends StatelessWidget {
               content:
                   'Address: Jugan, Consolacion\n'
                   'Phone: +63 567 890 9876\n'
-                  'Hours: Mon - Sat, 8:00 AM - 5:00 PM',
+                  'Hours: Mon \u2013 Sat, 7:00 AM \u2013 6:00 PM\n'
+                  '  (closed 12:00 PM \u2013 1:00 PM for staff lunch)\n'
+                  '\ud83d\udea8 Open 24 hours for emergencies',
               icon: Icons.location_on,
             ),
 
             const SizedBox(height: 20),
             const Center(
               child: Text(
-                'Developed by Rane | © 2026',
+                'Developed by Sean & Rane | © 2026',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ),

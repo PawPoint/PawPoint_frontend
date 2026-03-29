@@ -1,5 +1,5 @@
 import "package:flutter/material.dart";
-import "package:pawpoint_mobileapp/presentation/dashboard_page.dart";
+import "../home/dashboard_page.dart";
 import "dart:async";
 
 class SplashScreen extends StatefulWidget {
