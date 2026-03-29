@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pawpoint_mobileapp/models/appointment_model.dart';
-import 'package:flutter/material.dart';
 import '../core/utils/error_handler.dart';
 
 class AppointmentService {
@@ -20,8 +19,8 @@ class AppointmentService {
         body: jsonEncode(appointment.toMap()),
       );
 
-      debugPrint('[AppointmentService] createAppointment status: ${response.statusCode}');
-      debugPrint('[AppointmentService] createAppointment body: ${response.body}');
+      if (kDebugMode) print('[AppointmentService] createAppointment status: ${response.statusCode}');
+      if (kDebugMode) print('[AppointmentService] createAppointment body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -45,17 +44,17 @@ class AppointmentService {
         headers: {'Content-Type': 'application/json'},
       );
 
-      debugPrint('[AppointmentService] getAppointments status: ${response.statusCode}');
-      debugPrint('[AppointmentService] getAppointments body: ${response.body}');
+          if (kDebugMode) print('[AppointmentService] getAppointments status: ${response.statusCode}');
+          if (kDebugMode) print('[AppointmentService] getAppointments body: ${response.body}');
 
       if (response.statusCode == 200) {
         try {
           final data = jsonDecode(response.body);
           final list = data['appointments'] as List;
-          debugPrint('[AppointmentService] Parsing ${list.length} appointment(s)');
+          if (kDebugMode) print('[AppointmentService] Parsing ${list.length} appointment(s)');
           return list
               .map((e) {
-                debugPrint('[AppointmentService] Parsing entry: $e');
+                if (kDebugMode) print('[AppointmentService] Parsing entry: $e');
                 return AppointmentModel.fromMap(
                   e['id'] as String,
                   Map<String, dynamic>.from(e),
@@ -63,7 +62,7 @@ class AppointmentService {
               })
               .toList();
         } catch (parseError) {
-          debugPrint('[AppointmentService] PARSE ERROR: $parseError');
+          if (kDebugMode) print('[AppointmentService] PARSE ERROR: $parseError');
           throw Exception('Failed to parse appointments response: $parseError');
         }
       } else {
