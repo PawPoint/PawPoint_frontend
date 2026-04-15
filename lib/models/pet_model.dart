@@ -31,16 +31,16 @@ class PetModel {
   factory PetModel.fromMap(String id, Map<String, dynamic> data) {
     return PetModel(
       id: id,
-      petType: data['petType'] ?? '',
-      name: data['name'] ?? '',
-      breed: data['breed'] ?? '',
-      gender: data['gender'] ?? '',
-      age: data['age'] ?? '',
-      height: data['height'] ?? '',
-      weight: data['weight'] ?? '',
-      birthday: data['birthday'] ?? '',
-      characteristics: data['characteristics'] ?? '',
-      imageUrl: data['imageUrl'],
+      petType: data['petType']?.toString() ?? '',
+      name: data['name']?.toString() ?? '',
+      breed: data['breed']?.toString() ?? '',
+      gender: data['gender']?.toString() ?? '',
+      age: data['age']?.toString() ?? '',
+      height: data['height']?.toString() ?? '',
+      weight: data['weight']?.toString() ?? '',
+      birthday: data['birthday']?.toString() ?? '',
+      characteristics: data['characteristics']?.toString() ?? '',
+      imageUrl: data['imageUrl']?.toString(),
       isDeceased: data['isDeceased'] ?? false,
     );
   }

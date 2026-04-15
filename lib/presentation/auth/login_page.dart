@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../home/dashboard_page.dart';
-import 'package:pawpoint_mobileapp/auth/auth_service.dart';
+import '../../../../auth/auth_service.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_logo.dart';

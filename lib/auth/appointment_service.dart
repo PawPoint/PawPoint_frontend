@@ -1,26 +1,35 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart'; // <-- Added Firebase Auth
 import 'package:pawpoint_mobileapp/models/appointment_model.dart';
 import '../core/utils/error_handler.dart';
 
 class AppointmentService {
   static const String _baseUrl = 'http://localhost:8000';
 
+  // Helper function to grab the token
+  Future<String?> _getToken() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+    return await user.getIdToken();
+  }
+
   /// Create a new appointment via backend API
   Future<AppointmentModel> createAppointment({
-    required String userId,
     required AppointmentModel appointment,
   }) async {
     try {
+      final token = await _getToken();
+      
       final response = await http.post(
-        Uri.parse('$_baseUrl/appointments/$userId'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$_baseUrl/api/appointments'), // <-- URL Updated
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token', // <-- Token attached!
+        },
         body: jsonEncode(appointment.toMap()),
       );
-
-      if (kDebugMode) print('[AppointmentService] createAppointment status: ${response.statusCode}');
-      if (kDebugMode) print('[AppointmentService] createAppointment body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -35,38 +44,33 @@ class AppointmentService {
   }
 
   /// Fetch all appointments for a user
-  Future<List<AppointmentModel>> getAppointments({
-    required String userId,
-  }) async {
+  Future<List<AppointmentModel>> getAppointments() async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/appointments/$userId'),
-        headers: {'Content-Type': 'application/json'},
-      );
+      final token = await _getToken();
 
-          if (kDebugMode) print('[AppointmentService] getAppointments status: ${response.statusCode}');
-          if (kDebugMode) print('[AppointmentService] getAppointments body: ${response.body}');
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/appointments'), // <-- URL Updated
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token', // <-- Token attached!
+        },
+      );
 
       if (response.statusCode == 200) {
         try {
           final data = jsonDecode(response.body);
           final list = data['appointments'] as List;
-          if (kDebugMode) print('[AppointmentService] Parsing ${list.length} appointment(s)');
-          return list
-              .map((e) {
-                if (kDebugMode) print('[AppointmentService] Parsing entry: $e');
-                return AppointmentModel.fromMap(
-                  e['id'] as String,
-                  Map<String, dynamic>.from(e),
-                );
-              })
-              .toList();
+          return list.map((e) {
+            return AppointmentModel.fromMap(
+              e['id'] as String,
+              Map<String, dynamic>.from(e),
+            );
+          }).toList();
         } catch (parseError) {
-          if (kDebugMode) print('[AppointmentService] PARSE ERROR: $parseError');
           throw Exception('Failed to parse appointments response: $parseError');
         }
       } else {
-        throw Exception('Failed to load appointments: ${response.statusCode} ${response.body}');
+        throw Exception('Failed to load appointments: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception(ErrorHandler.getErrorMessage(e));
@@ -75,13 +79,17 @@ class AppointmentService {
 
   /// Cancel an appointment
   Future<AppointmentModel> cancelAppointment({
-    required String userId,
     required String appointmentId,
   }) async {
     try {
+      final token = await _getToken();
+
       final response = await http.put(
-        Uri.parse('$_baseUrl/appointments/$userId/cancel/$appointmentId'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$_baseUrl/api/appointments/cancel/$appointmentId'), // <-- URL Updated
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token', // <-- Token attached!
+        },
       );
 
       if (response.statusCode == 200) {

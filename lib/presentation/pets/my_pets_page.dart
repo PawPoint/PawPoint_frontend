@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawpoint_mobileapp/models/pet_model.dart';
 import '../profile/profile_page.dart';
 import 'pet_info_page.dart';
@@ -20,27 +20,24 @@ class MyPetsPage extends StatefulWidget {
 }
 
 class _MyPetsPageState extends State<MyPetsPage> {
-  static const String _baseUrl = 'http://localhost:8000';
   int _selectedIndex = 1; // Pets tab is active
   int _refreshKey = 0; // Increment to force-refresh the pet list
 
   Future<List<PetModel>> _fetchPets() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
-    final response = await http.get(
-      Uri.parse('$_baseUrl/api/users/${user.uid}/pets'),
-    );
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-      final List<dynamic> petList = body['pets'] ?? [];
-      return petList
-          .map((e) => PetModel.fromMap(
-                e['id'] as String? ?? '',
-                e as Map<String, dynamic>,
-              ))
-          .toList();
-    }
-    return [];
+
+    // Read directly from Firestore — avoids localhost HTTP issues and
+    // timestamp serialization failures in the backend.
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('pets')
+        .get();
+
+    return snapshot.docs.map((doc) {
+      return PetModel.fromMap(doc.id, doc.data());
+    }).toList();
   }
 
   void _onNavTapped(int index) {
@@ -130,6 +127,18 @@ class _MyPetsPageState extends State<MyPetsPage> {
                           return const Center(
                             child: CircularProgressIndicator(
                               color: Colors.black,
+                            ),
+                          );
+                        }
+
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: Text(
+                                'Error loading pets: ${snapshot.error}',
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ),
                           );
                         }

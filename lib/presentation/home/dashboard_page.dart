@@ -102,7 +102,7 @@ class _DashboardPageState extends State<DashboardPage> {
     if (user == null) return;
     try {
       final appointments =
-          await _apptService.getAppointments(userId: user.uid);
+          await _apptService.getAppointments();
       await _notifService.syncAppointmentNotifications(
         userId: user.uid,
         appointments: appointments,

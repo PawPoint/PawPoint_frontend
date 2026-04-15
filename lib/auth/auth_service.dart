@@ -1,11 +1,24 @@
-import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
-  static const String _baseUrl = 'http://localhost:8000';
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Sign up via backend API, then sign in locally with the custom token
+  // ─── LOGIN DIRECTLY WITH FIREBASE ───────────────────────────────────────
+  Future<User?> login({required String email, required String password}) async {
+    try {
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      throw Exception(_getFirebaseErrorMessage(e));
+    }
+  }
+
+  // ─── SIGNUP DIRECTLY WITH FIREBASE & CREATE FIRESTORE DOCUMENT ────────
   Future<User?> signUp({
     required String email,
     required String password,
@@ -14,60 +27,55 @@ class AuthService {
     required String address,
     required String confirmPassword,
   }) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/api/auth/signup'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-        'confirmPassword': confirmPassword,
-        'name': name,
-        'phone': phone,
-        'address': address,
-      }),
-    );
-
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      // Sign in locally with the custom token returned by the backend
-      final token = data['token'] as String?;
-      if (token != null && token.isNotEmpty) {
-        final credential = await FirebaseAuth.instance.signInWithCustomToken(
-          token,
-        );
-        return credential.user;
-      }
-      return null;
-    } else {
-      // Extract error message from backend response
-      final detail = data['detail'] ?? 'Registration failed. Please try again.';
-      throw Exception(detail);
-    }
-  }
-
-  /// Login via backend API, then sign in locally with email/password
-  /// (We still need local sign-in for Firebase SDK features like currentUser)
-  Future<User?> login({required String email, required String password}) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/api/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
-
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200) {
-      // Backend verified credentials — now sign in locally
-      // so FirebaseAuth.instance.currentUser works throughout the app
-      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+    try {
+      // 1. Create the account in Firebase Authentication
+      final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return credential.user;
-    } else {
-      final detail = data['detail'] ?? 'Login failed. Please try again.';
-      throw Exception(detail);
+
+      final user = userCredential.user;
+
+      if (user != null) {
+        // 2. Automatically save the extra info to your Firestore 'users' collection
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': email,
+          'name': name,
+          'phone': phone,
+          'address': address,
+          'photoUrl': '', 
+          'role': 'customer',
+          'createdAt': FieldValue.serverTimestamp(), 
+        });
+      }
+
+      return user;
+    } on FirebaseAuthException catch (e) {
+      throw Exception(_getFirebaseErrorMessage(e));
+    }
+  }
+
+  // ─── HELPER: LOGOUT ───────────────────────────────────────────────────
+  Future<void> logout() async {
+    await _auth.signOut();
+  }
+
+  // ─── HELPER: CLEAN ERROR MESSAGES ──────────────────────────────────────
+  String _getFirebaseErrorMessage(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Invalid email or password.';
+      case 'email-already-in-use':
+        return 'An account already exists for that email.';
+      case 'weak-password':
+        return 'The password provided is too weak.';
+      case 'invalid-email':
+        return 'The email address is not valid.';
+      default:
+        return e.message ?? 'An unknown error occurred.';
     }
   }
 }

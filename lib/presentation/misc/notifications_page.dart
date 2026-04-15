@@ -68,7 +68,7 @@ class _NotificationsPageState extends State<NotificationsPage>
     try {
       // 1. Sync appointment-derived notifications first
       final appointments =
-          await _apptService.getAppointments(userId: user.uid);
+          await _apptService.getAppointments();
       await _notifService.syncAppointmentNotifications(
         userId: user.uid,
         appointments: appointments,

@@ -326,9 +326,16 @@ class _AddPetPageState extends State<AddPetPage> {
           'imageUrl': _getImageBase64(),
         };
 
+        // 1. Grab the secure ID Token from Firebase Auth
+        final String? idToken = await user.getIdToken();
+
         final response = await http.post(
-          Uri.parse('$_baseUrl/api/users/${user.uid}/pets'),
-          headers: {'Content-Type': 'application/json'},
+          Uri.parse('$_baseUrl/api/pets'), // <-- See security note below!
+          headers: {
+            'Content-Type': 'application/json',
+            // 2. Attach the token as a "Bearer" token
+            'Authorization': 'Bearer $idToken', 
+          },
           body: jsonEncode(petData),
         );
 

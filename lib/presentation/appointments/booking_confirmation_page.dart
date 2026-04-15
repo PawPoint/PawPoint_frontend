@@ -64,7 +64,6 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
 
     try {
       await _appointmentService.createAppointment(
-        userId: user.uid,
         appointment: widget.appointment,
       );
 
