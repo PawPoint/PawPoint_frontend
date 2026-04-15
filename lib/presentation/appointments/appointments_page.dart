@@ -70,9 +70,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
     }
 
     try {
-      final appointments = await _appointmentService.getAppointments(
-        userId: user.uid,
-      );
+      final appointments = await _appointmentService.getAppointments();
       if (mounted) {
         setState(() {
           _allAppointments = appointments;
@@ -183,10 +181,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
     if (user == null || appt.id == null) return;
 
     try {
-      await _appointmentService.cancelAppointment(
-        userId: user.uid,
-        appointmentId: appt.id!,
-      );
+      await _appointmentService.cancelAppointment(appointmentId: appt.id!);
 
       await _loadAppointments();
 
@@ -226,183 +221,194 @@ class _AppointmentsPageState extends State<AppointmentsPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: Colors.black12,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Text(
-              'Appointment Details',
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
+      builder: (ctx) => Padding(
+        // Keep content above the keyboard when it's open
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          // Cap at 90% of screen height so it never overflows
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.90,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.black12,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  padding: const EdgeInsets.all(4),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      imagePath,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.person,
-                        size: 30,
-                        color: Colors.white38,
+                ),
+                Text(
+                  'Appointment Details',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          imagePath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.person,
+                            size: 30,
+                            color: Colors.white38,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            appt.doctor,
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            appt.service,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.black45,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _StatusBadge(status: appt.status),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _InfoTile(
+                  icon: Icons.pets_rounded,
+                  label: 'Pet',
+                  value: appt.pet,
+                ),
+                const SizedBox(height: 10),
+                _InfoTile(
+                  icon: Icons.medical_services_outlined,
+                  label: 'Service',
+                  value: appt.service,
+                ),
+                const SizedBox(height: 10),
+                if (kFormatPrice(appt.service).isNotEmpty)
+                  _InfoTile(
+                    icon: Icons.payments_rounded,
+                    label: 'Price',
+                    value: kFormatPrice(appt.service),
+                  ),
+                if (kFormatPrice(appt.service).isNotEmpty)
+                  const SizedBox(height: 10),
+                _InfoTile(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Date',
+                  value: _fmtDate(appt.dateTime),
+                ),
+                const SizedBox(height: 10),
+                _InfoTile(
+                  icon: Icons.access_time_rounded,
+                  label: 'Time',
+                  value: _fmtTime(appt.dateTime),
+                ),
+                const SizedBox(height: 10),
+                _InfoTile(
+                  icon: Icons.info_outline_rounded,
+                  label: 'Status',
+                  value: _statusLabel(appt.status),
+                ),
+                const SizedBox(height: 24),
+                if (appt.status != 'cancelled' && appt.status != 'completed')
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _cancelAppointment(appt);
+                      },
+                      icon: const Icon(Icons.cancel_outlined, size: 18),
+                      label: Text(
+                        'Cancel Appointment',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        appt.doctor,
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        appt.service,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: Colors.black45,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _StatusBadge(status: appt.status),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _InfoTile(
-              icon: Icons.pets_rounded,
-              label: 'Pet',
-              value: appt.pet,
-            ),
-            const SizedBox(height: 10),
-            _InfoTile(
-              icon: Icons.medical_services_outlined,
-              label: 'Service',
-              value: appt.service,
-            ),
-            const SizedBox(height: 10),
-            if (kFormatPrice(appt.service).isNotEmpty)
-              _InfoTile(
-                icon: Icons.payments_rounded,
-                label: 'Price',
-                value: kFormatPrice(appt.service),
-              ),
-            if (kFormatPrice(appt.service).isNotEmpty)
-              const SizedBox(height: 10),
-            _InfoTile(
-              icon: Icons.calendar_today_outlined,
-              label: 'Date',
-              value: _fmtDate(appt.dateTime),
-            ),
-            const SizedBox(height: 10),
-            _InfoTile(
-              icon: Icons.access_time_rounded,
-              label: 'Time',
-              value: _fmtTime(appt.dateTime),
-            ),
-            const SizedBox(height: 10),
-            _InfoTile(
-              icon: Icons.info_outline_rounded,
-              label: 'Status',
-              value: _statusLabel(appt.status),
-            ),
-            const SizedBox(height: 24),
-            if (appt.status != 'cancelled' && appt.status != 'completed')
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _cancelAppointment(appt);
-                  },
-                  icon: const Icon(Icons.cancel_outlined, size: 18),
-                  label: Text(
-                    'Cancel Appointment',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade600,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
+                if (appt.status == 'cancelled')
+                  Container(
+                    width: double.infinity,
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
                       borderRadius: BorderRadius.circular(14),
                     ),
+                    child: Text(
+                      'This appointment has been cancelled',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            if (appt.status == 'cancelled')
-              Container(
-                width: double.infinity,
-                height: 48,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  'This appointment has been cancelled',
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.red.shade700,
+                if (appt.status == 'completed')
+                  Container(
+                    width: double.infinity,
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      'This appointment has been completed',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.green.shade700,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            if (appt.status == 'completed')
-              Container(
-                width: double.infinity,
-                height: 48,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  'This appointment has been completed',
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.green.shade700,
-                  ),
-                ),
-              ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
