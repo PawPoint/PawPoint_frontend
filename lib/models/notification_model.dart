@@ -88,6 +88,8 @@ enum NotificationType {
   appointmentReminder,
   appointmentApproved,
   appointmentCancelled,
+  vetCancelled,
+  rescheduleProposed,    // clinic proposed a new time
   labResults,
   petReady,
   newService,

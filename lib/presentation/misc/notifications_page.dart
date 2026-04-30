@@ -176,6 +176,20 @@ class _NotificationsPageState extends State<NotificationsPage>
           bg: const Color(0xFFFFEBEE),
           label: 'Cancelled',
         );
+      case NotificationType.vetCancelled:
+        return _NotifMeta(
+          icon: Icons.medical_services_rounded,
+          color: const Color(0xFFE65100),
+          bg: const Color(0xFFFFF3E0),
+          label: 'Vet Cancelled',
+        );
+      case NotificationType.rescheduleProposed:
+        return _NotifMeta(
+          icon: Icons.edit_calendar_rounded,
+          color: const Color(0xFF1565C0),
+          bg: const Color(0xFFE3F2FD),
+          label: 'Reschedule Proposed',
+        );
       case NotificationType.labResults:
         return _NotifMeta(
           icon: Icons.science_rounded,

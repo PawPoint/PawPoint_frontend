@@ -136,7 +136,7 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Book your paw-fect visit now!',
+                        'Review your paw-fect visit!',
                         style: GoogleFonts.poppins(
                           fontSize: 13,
                           color: Colors.black54,
@@ -163,6 +163,8 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
                         text:
                             '${_formatDate(widget.appointment.dateTime)},  ${_formatTime(widget.appointment.dateTime)}',
                       ),
+                      const SizedBox(height: 24),
+                      _PaymentSummary(appointment: widget.appointment),
                       const Spacer(),
                       _isLoading
                           ? const CircularProgressIndicator(
@@ -273,6 +275,69 @@ class _DetailRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PaymentSummary extends StatelessWidget {
+  final AppointmentModel appointment;
+
+  const _PaymentSummary({required this.appointment});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        children: [
+          _Row(label: 'Total Price', value: '₱${appointment.totalPrice.toInt()}', isBold: true),
+          const SizedBox(height: 8),
+          _Row(label: 'Paid Online', value: '₱${appointment.amountPaidOnline.toInt()}', isSuccess: true),
+          if (appointment.balanceRemaining > 0) ...[
+            const SizedBox(height: 8),
+            _Row(label: 'Balance (Pay at Clinic)', value: '₱${appointment.balanceRemaining.toInt()}', isWarning: true),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _Row extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool isBold;
+  final bool isSuccess;
+  final bool isWarning;
+
+  const _Row({
+    required this.label,
+    required this.value,
+    this.isBold = false,
+    this.isSuccess = false,
+    this.isWarning = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54)),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
+            color: isSuccess ? Colors.green.shade700 : (isWarning ? Colors.orange.shade800 : Colors.black),
+          ),
+        ),
+      ],
     );
   }
 }

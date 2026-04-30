@@ -315,7 +315,7 @@ class ServicesPage extends StatelessWidget {
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 itemCount: _allServices.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final svc = _allServices[index];
                   return _ServiceListCard(
@@ -355,7 +355,7 @@ class _ServiceListCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -368,7 +368,7 @@ class _ServiceListCard extends StatelessWidget {
               width: 72,
               height: 80,
               decoration: BoxDecoration(
-                color: service.accentColor.withOpacity(0.1),
+                color: service.accentColor.withValues(alpha: 0.1),
                 borderRadius: const BorderRadius.horizontal(
                   left: Radius.circular(18),
                 ),
@@ -419,7 +419,7 @@ class _ServiceListCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: service.accentColor.withOpacity(0.12),
+                            color: service.accentColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -473,7 +473,7 @@ class ServiceDetailPage extends StatelessWidget {
               SliverToBoxAdapter(
                 child: Container(
                   height: 240,
-                  color: service.accentColor.withOpacity(0.08),
+                  color: service.accentColor.withValues(alpha: 0.08),
                   child: Stack(
                     children: [
                       // Photo carousel — uses service.photos, falls back to icon placeholder
@@ -502,11 +502,11 @@ class ServiceDetailPage extends StatelessWidget {
                         child: SafeArea(
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
+                                  color: Colors.black.withValues(alpha: 0.1),
                                   blurRadius: 8,
                                 ),
                               ],
@@ -528,7 +528,7 @@ class ServiceDetailPage extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.45),
+                            color: Colors.black.withValues(alpha: 0.45),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
@@ -568,7 +568,7 @@ class ServiceDetailPage extends StatelessWidget {
                             width: 46,
                             height: 46,
                             decoration: BoxDecoration(
-                              color: service.accentColor.withOpacity(0.12),
+                              color: service.accentColor.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: Icon(service.icon,
@@ -691,7 +691,7 @@ class ServiceDetailPage extends StatelessWidget {
                                 width: 22,
                                 height: 22,
                                 decoration: BoxDecoration(
-                                  color: service.accentColor.withOpacity(0.12),
+                                  color: service.accentColor.withValues(alpha: 0.12),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(Icons.check_rounded,
@@ -729,7 +729,7 @@ class ServiceDetailPage extends StatelessWidget {
                           ? Container(
                               height: 80,
                               decoration: BoxDecoration(
-                                color: service.accentColor.withOpacity(0.06),
+                                color: service.accentColor.withValues(alpha: 0.06),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Center(
@@ -782,7 +782,7 @@ class ServiceDetailPage extends StatelessWidget {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 20,
                     offset: const Offset(0, -4),
                   ),
@@ -851,22 +851,22 @@ class _PhotoPlaceholder extends StatelessWidget {
     // Try loading the real image (if assetPath provided); fall back to styled placeholder
     return Container(
       decoration: BoxDecoration(
-        color: accentColor.withOpacity(0.07 + (index * 0.02)),
+        color: accentColor.withValues(alpha: 0.07 + (index * 0.02)),
         border: Border.all(
-          color: accentColor.withOpacity(0.15),
+          color: accentColor.withValues(alpha: 0.15),
           width: 1,
         ),
       ),
       child: Image.asset(
         assetPath ?? 'assets/images/service_photo_$index.jpg',
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Column(
+        errorBuilder: (_, _, _) => Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               serviceIcon,
               size: compact ? 22 : 36,
-              color: accentColor.withOpacity(0.35),
+              color: accentColor.withValues(alpha: 0.35),
             ),
             if (!compact) ...[
               const SizedBox(height: 8),
@@ -874,7 +874,7 @@ class _PhotoPlaceholder extends StatelessWidget {
                 'Photo $index',
                 style: GoogleFonts.poppins(
                   fontSize: 11,
-                  color: accentColor.withOpacity(0.5),
+                  color: accentColor.withValues(alpha: 0.5),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -883,7 +883,7 @@ class _PhotoPlaceholder extends StatelessWidget {
                 'Coming soon',
                 style: GoogleFonts.poppins(
                   fontSize: 9,
-                  color: accentColor.withOpacity(0.35),
+                  color: accentColor.withValues(alpha: 0.35),
                 ),
               ),
             ],
@@ -914,7 +914,7 @@ class _InfoChip extends StatelessWidget {
     final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.09),
+        color: color.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -927,7 +927,7 @@ class _InfoChip extends StatelessWidget {
               label,
               style: GoogleFonts.poppins(
                 fontSize: 11.5,
-                color: color.withOpacity(0.85),
+                color: color.withValues(alpha: 0.85),
                 fontWeight: FontWeight.w600,
               ),
             ),

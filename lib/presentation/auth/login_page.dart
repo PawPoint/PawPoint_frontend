@@ -65,7 +65,7 @@ class _LoginPage extends State<LoginPage> {
                   Positioned(
                     bottom: -30,
                     child: Image.asset(
-                      "assets/images/c1-removebg-preview.png",
+                      "assets/images/c1.png",
                       width: 350,
                       fit: BoxFit.contain,
                     ),
@@ -125,7 +125,7 @@ class _LoginPage extends State<LoginPage> {
         password: password,
       );
 
-      if (context.mounted && user != null) {
+      if (mounted && user != null) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -134,7 +134,7 @@ class _LoginPage extends State<LoginPage> {
         );
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         _showErrorSnackBar(ErrorHandler.getErrorMessage(e));
       }
     } finally {

@@ -227,13 +227,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   if (shouldLogout == true) {
                     await FirebaseAuth.instance.signOut();
-                    if (mounted) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (context) => const LoginsignupPage()),
-                        (route) => false,
-                      );
-                    }
+                    if (!context.mounted) return;
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginsignupPage()),
+                      (route) => false,
+                    );
                   }
                 },
               ),

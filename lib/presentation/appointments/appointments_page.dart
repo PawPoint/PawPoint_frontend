@@ -98,14 +98,23 @@ class _AppointmentsPageState extends State<AppointmentsPage>
       .where((a) =>
           a.status == 'pending' ||
           a.status == 'scheduled' ||
-          a.status == 'approved')
+          a.status == 'approved' ||
+          a.status == 'reschedule_proposed')
       .toList();
 
   List<AppointmentModel> get _completed =>
       _allAppointments.where((a) => a.status == 'completed').toList();
 
+  List<AppointmentModel> get _pending =>
+      _allAppointments.where((a) =>
+          a.status == 'pending' ||
+          a.status == 'scheduled' ||
+          a.status == 'reschedule_proposed').toList();
+
   List<AppointmentModel> get _cancelled =>
-      _allAppointments.where((a) => a.status == 'cancelled').toList();
+      _allAppointments.where((a) =>
+          a.status == 'cancelled' ||
+          a.status == 'auto_cancelled').toList();
 
   String _statusLabel(String status) {
     switch (status) {
@@ -118,6 +127,10 @@ class _AppointmentsPageState extends State<AppointmentsPage>
         return 'Completed';
       case 'cancelled':
         return 'Cancelled';
+      case 'auto_cancelled':
+        return 'Auto-Cancelled';
+      case 'reschedule_proposed':
+        return 'Reschedule Proposed';
       default:
         return status[0].toUpperCase() + status.substring(1);
     }
@@ -143,15 +156,119 @@ class _AppointmentsPageState extends State<AppointmentsPage>
   }
 
   Future<void> _cancelAppointment(AppointmentModel appt) async {
+    final hasPaid = appt.amountPaidOnline > 0;
+    final isPending = appt.status == 'pending' || appt.status == 'scheduled';
+    final isApproved = appt.status == 'approved';
+
+    // ── Pre-cancel dialog with status-aware refund message ────────────────────
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Cancel Appointment',
             style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
-        content: Text(
-          'Are you sure you want to cancel your ${appt.service} appointment with ${appt.doctor}?',
-          style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to cancel your ${appt.service} appointment with ${appt.doctor}?',
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54),
+            ),
+            if (hasPaid) ...[
+              const SizedBox(height: 14),
+              // Pending → full refund
+              if (isPending)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.check_circle_outline_rounded,
+                          color: Colors.green.shade700, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Full Refund Eligible',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.green.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              'Since your appointment is still pending, your '  
+                              'downpayment of ₱${appt.amountPaidOnline.toInt()} '
+                              'will be fully refunded.',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: Colors.green.shade700,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              // Approved → no refund
+              if (isApproved)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          color: Colors.red.shade700, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '⚠ No Refund — Downpayment Forfeited',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.red.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              'Your appointment was already approved. '  
+                              'Your downpayment of ₱${appt.amountPaidOnline.toInt()} '  
+                              'will NOT be refunded.',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: Colors.red.shade700,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ],
         ),
         actions: [
           TextButton(
@@ -181,19 +298,22 @@ class _AppointmentsPageState extends State<AppointmentsPage>
     if (user == null || appt.id == null) return;
 
     try {
-      await _appointmentService.cancelAppointment(appointmentId: appt.id!);
+      final result = await _appointmentService.cancelAppointment(
+        appointmentId: appt.id!,
+      );
 
       await _loadAppointments();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Appointment cancelled successfully 🐾',
-                style: GoogleFonts.poppins()),
-            backgroundColor: Colors.black,
+            content: Text(result.snackbarMessage,
+                style: GoogleFonts.poppins(fontSize: 12)),
+            backgroundColor: result.snackbarColor,
             behavior: SnackBarBehavior.floating,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -213,9 +333,267 @@ class _AppointmentsPageState extends State<AppointmentsPage>
     }
   }
 
+  // ── Reschedule ────────────────────────────────────────────────────────────
+
+  Future<void> _rescheduleAppointment(AppointmentModel appt) async {
+    if (appt.id == null) return;
+
+    // Step 1 — Pick a new date
+    final now = DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now.add(const Duration(days: 1)),
+      firstDate: now.add(const Duration(days: 1)),
+      lastDate: now.add(const Duration(days: 90)),
+      helpText: 'Select New Date',
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Colors.black,
+            onPrimary: Colors.white,
+            onSurface: Colors.black87,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (pickedDate == null || !mounted) return;
+
+    // Step 2 — Pick a new time
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 9, minute: 0),
+      helpText: 'Select New Time',
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Colors.black,
+            onPrimary: Colors.white,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (pickedTime == null || !mounted) return;
+
+    final newDateTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    // Step 3 — Confirm dialog
+    final months = ['Jan','Feb','Mar','Apr','May','Jun',
+                    'Jul','Aug','Sep','Oct','Nov','Dec'];
+    final h = newDateTime.hour > 12
+        ? newDateTime.hour - 12
+        : (newDateTime.hour == 0 ? 12 : newDateTime.hour);
+    final min = newDateTime.minute.toString().padLeft(2, '0');
+    final period = newDateTime.hour >= 12 ? 'PM' : 'AM';
+    final label =
+        '${months[newDateTime.month - 1]} ${newDateTime.day}, ${newDateTime.year}  ·  $h:$min $period';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Confirm Reschedule',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Reschedule your ${appt.service} appointment to:',
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.event_rounded,
+                      color: Colors.blue.shade700, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Your downpayment will be retained and the status will return to Pending for vet confirmation.',
+              style: GoogleFonts.poppins(
+                  fontSize: 11, color: Colors.black45, height: 1.5),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Go Back',
+                style: GoogleFonts.poppins(
+                    color: Colors.black54, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('Confirm',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await _appointmentService.rescheduleAppointment(
+        appointmentId: appt.id!,
+        newDateTime: newDateTime,
+      );
+      await _loadAppointments();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Appointment rescheduled to $label 🗓️',
+                style: GoogleFonts.poppins(fontSize: 12)),
+            backgroundColor: Colors.black,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to reschedule: $e',
+                style: GoogleFonts.poppins(fontSize: 12)),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    }
+  }
+
+  // ── Accept / Decline Reschedule ─────────────────────────────────────────────
+
+  Future<void> _acceptReschedule(AppointmentModel appt) async {
+    if (appt.id == null) return;
+    try {
+      await _appointmentService.acceptReschedule(appointmentId: appt.id!);
+      await _loadAppointments();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Reschedule accepted! Your appointment is now Approved ✓',
+              style: GoogleFonts.poppins(fontSize: 12)),
+          backgroundColor: Colors.green.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 4),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed: $e', style: GoogleFonts.poppins(fontSize: 12)),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+      }
+    }
+  }
+
+  Future<void> _declineReschedule(AppointmentModel appt) async {
+    if (appt.id == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Decline Reschedule?',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        content: Text(
+          'Declining will cancel this appointment and process a full refund of your downpayment.',
+          style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Go Back',
+                style: GoogleFonts.poppins(color: Colors.black54, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('Yes, Decline',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final result = await _appointmentService.declineReschedule(appointmentId: appt.id!);
+      await _loadAppointments();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(result.snackbarMessage,
+              style: GoogleFonts.poppins(fontSize: 12)),
+          backgroundColor: result.snackbarColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 4),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed: $e', style: GoogleFonts.poppins(fontSize: 12)),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+      }
+    }
+  }
+
   void _showAppointmentDetails(AppointmentModel appt) {
-    final imagePath =
-        _doctorImages[appt.doctor] ?? 'assets/images/profile_icon.jpg';
+    // case-insensitive lookup
+    final match = _doctorImages.keys.firstWhere(
+      (k) => k.toLowerCase() == appt.doctor.toLowerCase(),
+      orElse: () => '',
+    );
+    final imagePath = match.isNotEmpty ? _doctorImages[match]! : 'assets/images/profile_icon.jpg';
 
     showModalBottomSheet(
       context: context,
@@ -271,7 +649,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
                         child: Image.asset(
                           imagePath,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
+                          errorBuilder: (_, _, _) => const Icon(
                             Icons.person,
                             size: 30,
                             color: Colors.white38,
@@ -343,7 +721,148 @@ class _AppointmentsPageState extends State<AppointmentsPage>
                   value: _statusLabel(appt.status),
                 ),
                 const SizedBox(height: 24),
-                if (appt.status != 'cancelled' && appt.status != 'completed')
+                // ── Action buttons ───────────────────────────────────────
+
+                // ── Reschedule proposed: Accept / Decline ──
+                if (appt.status == 'reschedule_proposed') ...
+                [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE3F2FD),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF1565C0).withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.edit_calendar_rounded,
+                                color: Color(0xFF1565C0), size: 16),
+                            const SizedBox(width: 6),
+                            Text('Reschedule Proposed',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF1565C0),
+                                )),
+                          ],
+                        ),
+                        if (appt.proposedDateTime.isNotEmpty) ...
+                        [
+                          const SizedBox(height: 6),
+                          Text(
+                            'New proposed time: ${appt.proposedDateTime.substring(0, appt.proposedDateTime.length >= 16 ? 16 : appt.proposedDateTime.length).replaceAll('T', '  ')}',
+                            style: GoogleFonts.poppins(
+                                fontSize: 12, color: const Color(0xFF1565C0)),
+                          ),
+                        ],
+                        const SizedBox(height: 4),
+                        Text(
+                          'The clinic has proposed a new schedule. Please accept or decline.',
+                          style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: const Color(0xFF1565C0).withOpacity(0.7),
+                              height: 1.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _declineReschedule(appt);
+                            },
+                            icon: const Icon(Icons.close_rounded, size: 18,
+                                color: Color(0xFFEF4444)),
+                            label: Text('Decline',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFEF4444),
+                                )),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFEF4444)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _acceptReschedule(appt);
+                            },
+                            icon: const Icon(Icons.check_rounded, size: 18),
+                            label: Text('Accept',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                )),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1565C0),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                ],
+
+                // ── Reschedule — pending only (not when reschedule already proposed)
+                if (appt.status == 'pending' || appt.status == 'scheduled')
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _rescheduleAppointment(appt);
+                        },
+                        icon: const Icon(Icons.edit_calendar_rounded, size: 18),
+                        label: Text(
+                          'Reschedule',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                // ── Cancel — not completed/cancelled/proposed
+                if (appt.status != 'cancelled' &&
+                    appt.status != 'auto_cancelled' &&
+                    appt.status != 'completed' &&
+                    appt.status != 'reschedule_proposed')
                   SizedBox(
                     width: double.infinity,
                     height: 48,
@@ -470,8 +989,20 @@ class _AppointmentsPageState extends State<AppointmentsPage>
             formattedDate: _fmtDate(appt.dateTime),
             formattedTime: _fmtTime(appt.dateTime),
             onViewDetails: () => _showAppointmentDetails(appt),
+            onReschedule: (appt.status == 'pending' || appt.status == 'scheduled')
+                ? () => _rescheduleAppointment(appt)
+                : null,
+            onAcceptReschedule: appt.status == 'reschedule_proposed'
+                ? () => _acceptReschedule(appt)
+                : null,
+            onDeclineReschedule: appt.status == 'reschedule_proposed'
+                ? () => _declineReschedule(appt)
+                : null,
             onCancel:
-                appt.status != 'completed' && appt.status != 'cancelled'
+                appt.status != 'completed' &&
+                        appt.status != 'cancelled' &&
+                        appt.status != 'auto_cancelled' &&
+                        appt.status != 'reschedule_proposed'
                     ? () => _cancelAppointment(appt)
                     : null,
           ),
@@ -502,10 +1033,10 @@ class _AppointmentsPageState extends State<AppointmentsPage>
                         alignment: Alignment.centerLeft,
                         child: IconButton(
                           icon: const Icon(
-                            Icons.chevron_left_rounded,
+                            Icons.refresh_rounded,
                             size: 28,
                           ),
-                          onPressed: () => Navigator.maybePop(context),
+                          onPressed: _loadAppointments,
                         ),
                       ),
                       Text(
@@ -581,6 +1112,9 @@ class _AppointmentCard extends StatelessWidget {
   final String formattedDate;
   final String formattedTime;
   final VoidCallback? onCancel;
+  final VoidCallback? onReschedule;
+  final VoidCallback? onAcceptReschedule;
+  final VoidCallback? onDeclineReschedule;
   final VoidCallback onViewDetails;
 
   const _AppointmentCard({
@@ -589,16 +1123,25 @@ class _AppointmentCard extends StatelessWidget {
     required this.formattedTime,
     required this.onViewDetails,
     this.onCancel,
+    this.onReschedule,
+    this.onAcceptReschedule,
+    this.onDeclineReschedule,
   });
 
   @override
   Widget build(BuildContext context) {
-    final imagePath =
-        _doctorImages[appt.doctor] ?? 'assets/images/profile_icon.jpg';
+    // case-insensitive lookup
+    final match = _doctorImages.keys.firstWhere(
+      (k) => k.toLowerCase() == appt.doctor.toLowerCase(),
+      orElse: () => '',
+    );
+    final imagePath = match.isNotEmpty ? _doctorImages[match]! : 'assets/images/profile_icon.jpg';
+
     final isPending  = appt.status == 'pending' || appt.status == 'scheduled';
     final isApproved = appt.status == 'approved';
     final isCompleted = appt.status == 'completed';
-    final isCancelled = appt.status == 'cancelled';
+    final isCancelled = appt.status == 'cancelled' || appt.status == 'auto_cancelled';
+    final isAutoCancelled = appt.status == 'auto_cancelled';
 
     return GestureDetector(
       onTap: onViewDetails,
@@ -622,7 +1165,7 @@ class _AppointmentCard extends StatelessWidget {
                 child: Image.asset(
                   imagePath,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
+                  errorBuilder: (_, _, _) =>
                       const Icon(Icons.person, size: 50, color: Colors.white38),
                 ),
               ),
@@ -703,16 +1246,35 @@ class _AppointmentCard extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.red.shade100,
+                          color: isAutoCancelled
+                              ? const Color(0xFFE8EAF6)
+                              : Colors.red.shade100,
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text(
-                          'Cancelled',
-                          style: GoogleFonts.poppins(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.red.shade700,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isAutoCancelled
+                                  ? Icons.schedule_rounded
+                                  : Icons.cancel_rounded,
+                              size: 9,
+                              color: isAutoCancelled
+                                  ? const Color(0xFF3949AB)
+                                  : Colors.red.shade700,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              isAutoCancelled ? 'Auto-Cancelled' : 'Cancelled',
+                              style: GoogleFonts.poppins(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600,
+                                color: isAutoCancelled
+                                    ? const Color(0xFF3949AB)
+                                    : Colors.red.shade700,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     Text(
@@ -789,13 +1351,41 @@ class _AppointmentCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        if (!isCompleted && !isCancelled)
+                        // Reschedule proposed — Accept/Decline only
+                        if (appt.status == 'reschedule_proposed') ...
+                        [
+                          _ActionButton(
+                            label: 'Decline',
+                            filled: false,
+                            onTap: onDeclineReschedule ?? () {},
+                          ),
+                          const SizedBox(width: 6),
+                          _ActionButton(
+                            label: 'Accept',
+                            filled: true,
+                            onTap: onAcceptReschedule ?? () {},
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        // Reschedule — pending only (not when proposed)
+                        if (isPending && onReschedule != null)
+                          _ActionButton(
+                            label: 'Reschedule',
+                            filled: false,
+                            onTap: onReschedule!,
+                          ),
+                        if (isPending && onReschedule != null)
+                          const SizedBox(width: 6),
+                        // Cancel — not completed/cancelled/proposed
+                        if (!isCompleted && !isCancelled &&
+                            appt.status != 'reschedule_proposed')
                           _ActionButton(
                             label: 'Cancel',
                             filled: false,
                             onTap: onCancel ?? () {},
                           ),
-                        if (!isCompleted && !isCancelled)
+                        if (!isCompleted && !isCancelled &&
+                            appt.status != 'reschedule_proposed')
                           const SizedBox(width: 6),
                         _ActionButton(
                           label: 'View Details',
@@ -911,6 +1501,16 @@ class _StatusBadge extends StatelessWidget {
         bgColor = Colors.red.shade100;
         textColor = Colors.red.shade700;
         label = 'Cancelled';
+        break;
+      case 'auto_cancelled':
+        bgColor = const Color(0xFFE8EAF6);
+        textColor = const Color(0xFF3949AB);
+        label = 'Auto-Cancelled';
+        break;
+      case 'reschedule_proposed':
+        bgColor = const Color(0xFFE3F2FD);
+        textColor = const Color(0xFF1565C0);
+        label = 'Reschedule Proposed 📅';
         break;
       case 'pending':
       case 'scheduled':
