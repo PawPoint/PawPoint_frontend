@@ -92,8 +92,9 @@ class _MyPetsPageState extends State<MyPetsPage> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
-                      icon: const Icon(Icons.chevron_left_rounded, size: 28),
-                      onPressed: () => Navigator.maybePop(context),
+                      icon: const Icon(Icons.refresh_rounded, size: 28),
+                      tooltip: 'Refresh',
+                      onPressed: () => setState(() => _refreshKey++),
                     ),
                   ),
                   Text(
@@ -183,7 +184,7 @@ class _MyPetsPageState extends State<MyPetsPage> {
                             vertical: 10,
                           ),
                           itemCount: pets.length,
-                          separatorBuilder: (_, __) =>
+                          separatorBuilder: (_, _) =>
                               const SizedBox(height: 0),
                           itemBuilder: (context, index) {
                             return _PetListTile(pet: pets[index]);
@@ -344,7 +345,7 @@ class _PetListTile extends StatelessWidget {
                 width: 30,
                 height: 30,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Icon(
+                errorBuilder: (_, _, _) => Icon(
                   Icons.pets_rounded,
                   size: 26,
                   color: isDeceased ? Colors.grey : Colors.black26,
@@ -365,7 +366,7 @@ class _PetListTile extends StatelessWidget {
         fit: BoxFit.cover,
         width: 64,
         height: 64,
-        errorBuilder: (_, __, ___) =>
+        errorBuilder: (_, _, _) =>
             const Icon(Icons.pets_rounded, size: 28, color: Colors.black26),
       );
     } else {

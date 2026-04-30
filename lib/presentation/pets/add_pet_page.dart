@@ -698,7 +698,7 @@ class _AddPetPageState extends State<AddPetPage> {
                         onPressed: _isSaving ? null : _savePet,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.black,
-                          disabledBackgroundColor: Colors.black.withOpacity(
+                          disabledBackgroundColor: Colors.black.withValues(alpha: 
                             0.4,
                           ),
                           foregroundColor: Colors.white,
@@ -751,7 +751,7 @@ class _AddPetPageState extends State<AddPetPage> {
         fit: BoxFit.cover,
         width: 100,
         height: 100,
-        errorBuilder: (_, __, ___) =>
+        errorBuilder: (_, _, _) =>
             const Icon(Icons.add, size: 40, color: Colors.black54),
       );
     }

@@ -7,7 +7,7 @@ import 'package:pawpoint_mobileapp/models/appointment_model.dart';
 import 'package:pawpoint_mobileapp/models/pet_model.dart';
 import '../profile/profile_page.dart';
 import '../widgets/shared_bottom_nav.dart';
-import 'booking_confirmation_page.dart';
+import 'payment_selection_page.dart';
 import 'appointments_page.dart';
 import '../home/dashboard_page.dart';
 import '../pets/my_pets_page.dart';
@@ -87,7 +87,7 @@ class _BookNowPageState extends State<BookNowPage> {
   ];
 
   final List<String> _doctors = [
-    'Dr. Ji-eun Park',
+    'Dr. Ji-Eun Park',
     'Dr. Matteo Rossi',
     'Nurse Hana Kim',
     'Nurse Sofia Müller',
@@ -136,7 +136,7 @@ class _BookNowPageState extends State<BookNowPage> {
     const morningSlots = [7, 8, 9, 10, 11];
     const afternoonSlots = [13, 14, 15, 16, 17, 18];
 
-    String _label(int h) {
+    String label(int h) {
       final hour = h > 12 ? h - 12 : h;
       final period = h >= 12 ? 'PM' : 'AM';
       return '$hour:00 $period';
@@ -184,7 +184,7 @@ class _BookNowPageState extends State<BookNowPage> {
               spacing: 8,
               runSpacing: 8,
               children: morningSlots.map((h) => _SlotButton(
-                label: _label(h),
+                label: label(h),
                 onTap: () => Navigator.pop(ctx, h),
               )).toList(),
             ),
@@ -218,7 +218,7 @@ class _BookNowPageState extends State<BookNowPage> {
               spacing: 8,
               runSpacing: 8,
               children: afternoonSlots.map((h) => _SlotButton(
-                label: _label(h),
+                label: label(h),
                 onTap: () => Navigator.pop(ctx, h),
               )).toList(),
             ),
@@ -497,7 +497,7 @@ class _BookNowPageState extends State<BookNowPage> {
                                     fit: BoxFit.contain,
                                     color: Colors.black45,
                                     colorBlendMode: BlendMode.srcIn,
-                                    errorBuilder: (_, __, ___) => const Icon(
+                                    errorBuilder: (_, _, _) => const Icon(
                                       Icons.pets,
                                       size: 20,
                                       color: Colors.black45,
@@ -577,7 +577,7 @@ class _BookNowPageState extends State<BookNowPage> {
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) =>
-                                              BookingConfirmationPage(
+                                              PaymentSelectionPage(
                                                 appointment: AppointmentModel(
                                                   service: _selectedService!,
                                                   pet: _selectedPet!,
@@ -592,7 +592,7 @@ class _BookNowPageState extends State<BookNowPage> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.black,
                                 disabledBackgroundColor: Colors.black
-                                    .withOpacity(0.3),
+                                    .withValues(alpha: 0.3),
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30),
@@ -664,7 +664,7 @@ class _DropdownField extends StatelessWidget {
             fit: BoxFit.contain,
             color: Colors.black45,
             colorBlendMode: BlendMode.srcIn,
-            errorBuilder: (_, __, ___) =>
+            errorBuilder: (_, _, _) =>
                 const Icon(Icons.pets, size: 20, color: Colors.black45),
           ),
           style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),

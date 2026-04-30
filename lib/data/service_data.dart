@@ -1,6 +1,6 @@
-/// Shared service data: prices and helper formatter.
-/// Imported by services_page, book_now_page, and appointments_page
-/// so prices stay consistent across the app from a single source of truth.
+// Shared service data: prices and helper formatter.
+// Imported by services_page, book_now_page, and appointments_page
+// so prices stay consistent across the app from a single source of truth.
 
 const Map<String, double> kServicePrices = {
   'General Check-up': 500,

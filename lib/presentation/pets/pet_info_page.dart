@@ -140,7 +140,7 @@ class PetInfoPage extends StatelessWidget {
                         color: const Color(0xFFF5F5F5),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
+                            color: Colors.black.withValues(alpha: 0.06),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
@@ -225,7 +225,7 @@ class PetInfoPage extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: isDeceased
                               ? Colors.grey[200]
-                              : Colors.black.withOpacity(0.07),
+                              : Colors.black.withValues(alpha: 0.07),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -393,7 +393,7 @@ class PetInfoPage extends StatelessWidget {
         fit: BoxFit.cover,
         width: 220,
         height: 220,
-        errorBuilder: (_, __, ___) =>
+        errorBuilder: (_, _, _) =>
             Icon(Icons.pets_rounded, size: 64, color: Colors.black12),
       );
     } else {
