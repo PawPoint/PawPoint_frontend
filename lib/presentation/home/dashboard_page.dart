@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawpoint_mobileapp/auth/appointment_service.dart';
 import 'package:pawpoint_mobileapp/auth/notification_service.dart';
+import 'package:pawpoint_mobileapp/core/utils/image_utils.dart';
 import '../info/about_us_page.dart';
 import '../info/contact_us_page.dart';
 import '../misc/notifications_page.dart';
@@ -305,29 +307,51 @@ class _DashboardPageState extends State<DashboardPage> {
                     const SizedBox(height: 16),
                     SizedBox(
                       height: 130,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _experts.length,
-                        itemBuilder: (context, index) {
-                          final expert = _experts[index];
-                          return GestureDetector(
-                            onTap: () {
-                              final user = FirebaseAuth.instance.currentUser;
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => user != null
-                                      ? BookNowPage(
-                                          initialDoctor: expert['name']!,
-                                        )
-                                      : const LoginsignupPage(),
+                      child: StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('admins')
+                            .where('isActive', isEqualTo: true)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          final experts = snapshot.data!.docs;
+                          if (experts.isEmpty) {
+                            return Center(
+                              child: Text(
+                                'No experts available yet',
+                                style: GoogleFonts.poppins(fontSize: 12, color: Colors.black38),
+                              ),
+                            );
+                          }
+                          return ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: experts.length,
+                            itemBuilder: (context, index) {
+                              final expert = experts[index].data() as Map<String, dynamic>;
+                              final name = expert['name'] ?? 'Expert';
+                              final photoUrl = expert['photoUrl'] ?? '';
+                              return GestureDetector(
+                                onTap: () {
+                                  final user = FirebaseAuth.instance.currentUser;
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => user != null
+                                          ? BookNowPage(
+                                              initialDoctor: name,
+                                            )
+                                          : const LoginsignupPage(),
+                                    ),
+                                  );
+                                },
+                                child: _ExpertCard(
+                                  name: name,
+                                  imagePath: photoUrl,
                                 ),
                               );
                             },
-                            child: _ExpertCard(
-                              name: expert['name']!,
-                              imagePath: expert['image']!,
-                            ),
                           );
                         },
                       ),
@@ -487,6 +511,8 @@ class _ExpertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageProvider = ImageUtils.getProfileImage(imagePath);
+
     return Container(
       width: 100,
       margin: const EdgeInsets.only(right: 16),
@@ -501,7 +527,26 @@ class _ExpertCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             clipBehavior: Clip.hardEdge,
-            child: Image.asset(imagePath, fit: BoxFit.cover),
+            child: imageProvider != null
+                ? Image(
+                    image: imageProvider,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.person_rounded,
+                        size: 40,
+                        color: Colors.white70),
+                  )
+                : (imagePath.isNotEmpty
+                    ? Image.asset(
+                        imagePath,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                            Icons.person_rounded,
+                            size: 40,
+                            color: Colors.white70),
+                      )
+                    : const Icon(Icons.person_rounded,
+                        size: 40, color: Colors.white70)),
           ),
           const SizedBox(height: 8),
           Text(

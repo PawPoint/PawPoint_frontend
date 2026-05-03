@@ -34,12 +34,38 @@ class _BookNowPageState extends State<BookNowPage> {
   List<PetModel> _userPets = [];
   bool _isLoadingPets = true;
 
+  List<String> _dynamicDoctors = [];
+  bool _isLoadingDoctors = true;
+
   @override
   void initState() {
     super.initState();
     _selectedDoctor = widget.initialDoctor;
     _selectedService = widget.initialService;
     _loadUserPets();
+    _loadDoctors();
+  }
+
+  Future<void> _loadDoctors() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('admins')
+          .where('isActive', isEqualTo: true)
+          .get();
+      final names = snapshot.docs.map((doc) => (doc.data()['name'] ?? 'Staff').toString()).toList();
+      if (mounted) {
+        setState(() {
+          _dynamicDoctors = names;
+          _isLoadingDoctors = false;
+          // If the initially selected doctor is not in the active list, reset it
+          if (_selectedDoctor != null && !names.contains(_selectedDoctor)) {
+            _selectedDoctor = null;
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingDoctors = false);
+    }
   }
 
   Future<void> _loadUserPets() async {
@@ -84,13 +110,6 @@ class _BookNowPageState extends State<BookNowPage> {
     'Quick Grooming',
     'Special Treatments',
     'Full Grooming Packages',
-  ];
-
-  final List<String> _doctors = [
-    'Dr. Ji-Eun Park',
-    'Dr. Matteo Rossi',
-    'Nurse Hana Kim',
-    'Nurse Sofia Müller',
   ];
 
   Future<void> _pickDateTime() async {
@@ -456,13 +475,47 @@ class _BookNowPageState extends State<BookNowPage> {
                                       setState(() => _selectedPet = v),
                                 ),
                           const SizedBox(height: 14),
-                          _DropdownField(
-                            hint: 'Doctor',
-                            value: _selectedDoctor,
-                            items: _doctors,
-                            onChanged: (v) =>
-                                setState(() => _selectedDoctor = v),
-                          ),
+                          _isLoadingDoctors
+                              ? Container(
+                                  height: 52,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Loading doctors...',
+                                          style: GoogleFonts.poppins(fontSize: 13, color: Colors.black38),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black38)),
+                                    ],
+                                  ),
+                                )
+                              : _dynamicDoctors.isEmpty
+                                  ? Container(
+                                      height: 52,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          'No doctors available',
+                                          style: GoogleFonts.poppins(fontSize: 13, color: Colors.black38),
+                                        ),
+                                      ),
+                                    )
+                                  : _DropdownField(
+                                      hint: 'Doctor',
+                                      value: _selectedDoctor,
+                                      items: _dynamicDoctors,
+                                      onChanged: (v) => setState(() => _selectedDoctor = v),
+                                    ),
                           const SizedBox(height: 14),
                           GestureDetector(
                             onTap: _pickDateTime,
@@ -642,6 +695,9 @@ class _DropdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Safety check: if value is not in items, it must be null to avoid crash
+    final String? effectiveValue = (value != null && items.contains(value)) ? value : null;
+
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -651,7 +707,7 @@ class _DropdownField extends StatelessWidget {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: value,
+          value: effectiveValue,
           hint: Text(
             hint,
             style: GoogleFonts.poppins(fontSize: 13, color: Colors.black38),
