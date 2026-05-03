@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pawpoint_mobileapp/core/utils/image_utils.dart';
 import 'package:pawpoint_mobileapp/data/service_data.dart';
 import 'package:pawpoint_mobileapp/models/appointment_model.dart';
 import 'package:pawpoint_mobileapp/auth/appointment_service.dart';
@@ -37,6 +39,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
   List<AppointmentModel> _allAppointments = [];
   bool _isLoading = true;
   final _appointmentService = AppointmentService();
+  Map<String, String> _dynamicDoctorImages = {};
 
   @override
   void initState() {
@@ -53,7 +56,34 @@ class _AppointmentsPageState extends State<AppointmentsPage>
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
 
-    _loadAppointments();
+    _loadAll();
+  }
+
+  Future<void> _loadAll() async {
+    await _loadDoctorImages();
+    await _loadAppointments();
+  }
+
+  Future<void> _loadDoctorImages() async {
+    final Map<String, String> mapping = {};
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('admins').get();
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['name'] != null && data['photoUrl'] != null) {
+          mapping[data['name'].toString().toLowerCase()] =
+              data['photoUrl'].toString();
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _dynamicDoctorImages = mapping;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading doctor images: $e');
+    }
   }
 
   @override
@@ -588,12 +618,20 @@ class _AppointmentsPageState extends State<AppointmentsPage>
   }
 
   void _showAppointmentDetails(AppointmentModel appt) {
-    // case-insensitive lookup
-    final match = _doctorImages.keys.firstWhere(
-      (k) => k.toLowerCase() == appt.doctor.toLowerCase(),
-      orElse: () => '',
-    );
-    final imagePath = match.isNotEmpty ? _doctorImages[match]! : 'assets/images/profile_icon.jpg';
+    // case-insensitive lookup in dynamic images first
+    String? photoUrl = _dynamicDoctorImages[appt.doctor.toLowerCase()];
+
+    // if not found, check hardcoded map (fallback)
+    if (photoUrl == null) {
+      final match = _doctorImages.keys.firstWhere(
+        (k) => k.toLowerCase() == appt.doctor.toLowerCase(),
+        orElse: () => '',
+      );
+      photoUrl = match.isNotEmpty ? _doctorImages[match]! : '';
+    }
+
+    final imageProvider = ImageUtils.getProfileImage(photoUrl ?? '');
+    final bool isAsset = photoUrl != null && photoUrl.startsWith('assets/');
 
     showModalBottomSheet(
       context: context,
@@ -646,15 +684,31 @@ class _AppointmentsPageState extends State<AppointmentsPage>
                       padding: const EdgeInsets.all(4),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(
-                          imagePath,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const Icon(
-                            Icons.person,
-                            size: 30,
-                            color: Colors.white38,
-                          ),
-                        ),
+                        child: imageProvider != null
+                            ? Image(
+                                image: imageProvider,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.person,
+                                  size: 30,
+                                  color: Colors.white38,
+                                ),
+                              )
+                            : (isAsset
+                                ? Image.asset(
+                                    photoUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.person,
+                                      size: 30,
+                                      color: Colors.white38,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.person,
+                                    size: 30,
+                                    color: Colors.white38,
+                                  )),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -988,6 +1042,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
             appt: appt,
             formattedDate: _fmtDate(appt.dateTime),
             formattedTime: _fmtTime(appt.dateTime),
+            doctorImages: _dynamicDoctorImages,
             onViewDetails: () => _showAppointmentDetails(appt),
             onReschedule: (appt.status == 'pending' || appt.status == 'scheduled')
                 ? () => _rescheduleAppointment(appt)
@@ -1116,12 +1171,14 @@ class _AppointmentCard extends StatelessWidget {
   final VoidCallback? onAcceptReschedule;
   final VoidCallback? onDeclineReschedule;
   final VoidCallback onViewDetails;
+  final Map<String, String> doctorImages;
 
   const _AppointmentCard({
     required this.appt,
     required this.formattedDate,
     required this.formattedTime,
     required this.onViewDetails,
+    required this.doctorImages,
     this.onCancel,
     this.onReschedule,
     this.onAcceptReschedule,
@@ -1130,12 +1187,20 @@ class _AppointmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // case-insensitive lookup
-    final match = _doctorImages.keys.firstWhere(
-      (k) => k.toLowerCase() == appt.doctor.toLowerCase(),
-      orElse: () => '',
-    );
-    final imagePath = match.isNotEmpty ? _doctorImages[match]! : 'assets/images/profile_icon.jpg';
+    // case-insensitive lookup in dynamic images first
+    String? photoUrl = doctorImages[appt.doctor.toLowerCase()];
+    
+    // if not found, check hardcoded map (fallback)
+    if (photoUrl == null) {
+      final match = _doctorImages.keys.firstWhere(
+        (k) => k.toLowerCase() == appt.doctor.toLowerCase(),
+        orElse: () => '',
+      );
+      photoUrl = match.isNotEmpty ? _doctorImages[match]! : '';
+    }
+
+    final imageProvider = ImageUtils.getProfileImage(photoUrl ?? '');
+    final bool isAsset = photoUrl != null && photoUrl.startsWith('assets/');
 
     final isPending  = appt.status == 'pending' || appt.status == 'scheduled';
     final isApproved = appt.status == 'approved';
@@ -1162,12 +1227,24 @@ class _AppointmentCard extends StatelessWidget {
                 width: 110,
                 color: const Color(0xFF1E1E1E),
                 padding: const EdgeInsets.all(8),
-                child: Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) =>
-                      const Icon(Icons.person, size: 50, color: Colors.white38),
-                ),
+                child: imageProvider != null
+                    ? Image(
+                        image: imageProvider,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.person,
+                            size: 50, color: Colors.white38),
+                      )
+                    : (isAsset
+                        ? Image.asset(
+                            photoUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Colors.white38),
+                          )
+                        : const Icon(Icons.person,
+                            size: 50, color: Colors.white38)),
               ),
             ),
             Expanded(
