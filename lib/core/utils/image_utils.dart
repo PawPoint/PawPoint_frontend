@@ -52,7 +52,7 @@ class ImageUtils {
         radius: radius,
         backgroundColor: const Color(0xFFE8E8E8),
         backgroundImage: AssetImage(photoUrl),
-        onBackgroundImageError: (_, __) {},
+        onBackgroundImageError: (_, _) {},
         child: null, // If asset fails, it will show the background color or we could handle error better
       );
     }

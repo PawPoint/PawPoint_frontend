@@ -29,24 +29,6 @@ class _DashboardPageState extends State<DashboardPage> {
   final _notifService = NotificationService();
   final _apptService = AppointmentService();
 
-  final List<Map<String, String>> _experts = [
-    {
-      'name': 'Dr. Ji-eun Park',
-      'image': 'assets/images/doctor1-removebg-previewedit.png',
-    },
-    {
-      'name': 'Dr. Matteo Rossi',
-      'image': 'assets/images/doctor2-removebg-previewedit.png',
-    },
-    {
-      'name': 'Nurse Hana Kim',
-      'image': 'assets/images/n1-removebg-preview.png',
-    },
-    {
-      'name': 'Nurse Sofia Müller',
-      'image': 'assets/images/n2-removebg-previewedit.png',
-    },
-  ];
 
   final List<Map<String, String>> _services = [
     {
@@ -307,49 +289,85 @@ class _DashboardPageState extends State<DashboardPage> {
                     const SizedBox(height: 16),
                     SizedBox(
                       height: 130,
-                      child: StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('admins')
-                            .where('isActive', isEqualTo: true)
-                            .snapshots(),
-                        builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-                          final experts = snapshot.data!.docs;
-                          if (experts.isEmpty) {
+                      child: Builder(
+                        builder: (context) {
+                          final currentUser = FirebaseAuth.instance.currentUser;
+
+                          // Guest users — skip Firestore query entirely
+                          if (currentUser == null) {
                             return Center(
                               child: Text(
                                 'No experts available yet',
-                                style: GoogleFonts.poppins(fontSize: 12, color: Colors.black38),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.black38,
+                                ),
                               ),
                             );
                           }
-                          return ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: experts.length,
-                            itemBuilder: (context, index) {
-                              final expert = experts[index].data() as Map<String, dynamic>;
-                              final name = expert['name'] ?? 'Expert';
-                              final photoUrl = expert['photoUrl'] ?? '';
-                              return GestureDetector(
-                                onTap: () {
-                                  final user = FirebaseAuth.instance.currentUser;
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => user != null
-                                          ? BookNowPage(
-                                              initialDoctor: name,
-                                            )
-                                          : const LoginsignupPage(),
+
+                          return StreamBuilder<QuerySnapshot>(
+                            stream: FirebaseFirestore.instance
+                                .collection('admins')
+                                .where('isActive', isEqualTo: true)
+                                .snapshots(),
+                            builder: (context, snapshot) {
+                              // Handle errors (e.g. permission denied)
+                              if (snapshot.hasError) {
+                                return Center(
+                                  child: Text(
+                                    'No experts available yet',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.black38,
+                                    ),
+                                  ),
+                                );
+                              }
+                              if (!snapshot.hasData) {
+                                return const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.black,
+                                  ),
+                                );
+                              }
+                              final experts = snapshot.data!.docs;
+                              if (experts.isEmpty) {
+                                return Center(
+                                  child: Text(
+                                    'No experts available yet',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.black38,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: experts.length,
+                                itemBuilder: (context, index) {
+                                  final expert = experts[index].data()
+                                      as Map<String, dynamic>;
+                                  final name = expert['name'] ?? 'Expert';
+                                  final photoUrl = expert['photoUrl'] ?? '';
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => BookNowPage(
+                                            initialDoctor: name,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: _ExpertCard(
+                                      name: name,
+                                      imagePath: photoUrl,
                                     ),
                                   );
                                 },
-                                child: _ExpertCard(
-                                  name: name,
-                                  imagePath: photoUrl,
-                                ),
                               );
                             },
                           );
@@ -663,6 +681,7 @@ class _ServiceCard extends StatelessWidget {
                       ),
                       child: Text(
                         'Book an appointment now!',
+                        textAlign: TextAlign.center,
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,

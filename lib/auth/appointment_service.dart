@@ -5,8 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawpoint_mobileapp/models/appointment_model.dart';
 import '../core/utils/error_handler.dart';
 
+import 'package:pawpoint_mobileapp/api_config.dart';
+
 class AppointmentService {
-  static const String _baseUrl = 'http://localhost:8000';
+  static const String _baseUrl = ApiConfig.baseUrl;
 
   // Helper function to grab the token
   Future<String?> _getToken() async {

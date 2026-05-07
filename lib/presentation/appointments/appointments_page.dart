@@ -135,12 +135,6 @@ class _AppointmentsPageState extends State<AppointmentsPage>
   List<AppointmentModel> get _completed =>
       _allAppointments.where((a) => a.status == 'completed').toList();
 
-  List<AppointmentModel> get _pending =>
-      _allAppointments.where((a) =>
-          a.status == 'pending' ||
-          a.status == 'scheduled' ||
-          a.status == 'reschedule_proposed').toList();
-
   List<AppointmentModel> get _cancelled =>
       _allAppointments.where((a) =>
           a.status == 'cancelled' ||
@@ -630,8 +624,8 @@ class _AppointmentsPageState extends State<AppointmentsPage>
       photoUrl = match.isNotEmpty ? _doctorImages[match]! : '';
     }
 
-    final imageProvider = ImageUtils.getProfileImage(photoUrl ?? '');
-    final bool isAsset = photoUrl != null && photoUrl.startsWith('assets/');
+    final imageProvider = ImageUtils.getProfileImage(photoUrl);
+    final bool isAsset = photoUrl.startsWith('assets/');
 
     showModalBottomSheet(
       context: context,
@@ -688,7 +682,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
                             ? Image(
                                 image: imageProvider,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(
+                                errorBuilder: (_, _, _) => const Icon(
                                   Icons.person,
                                   size: 30,
                                   color: Colors.white38,
@@ -698,7 +692,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
                                 ? Image.asset(
                                     photoUrl!,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(
+                                    errorBuilder: (_, _, _) => const Icon(
                                       Icons.person,
                                       size: 30,
                                       color: Colors.white38,
@@ -787,7 +781,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
                     decoration: BoxDecoration(
                       color: const Color(0xFFE3F2FD),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFF1565C0).withOpacity(0.3)),
+                      border: Border.all(color: const Color(0xFF1565C0).withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -819,7 +813,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
                           'The clinic has proposed a new schedule. Please accept or decline.',
                           style: GoogleFonts.poppins(
                               fontSize: 11,
-                              color: const Color(0xFF1565C0).withOpacity(0.7),
+                              color: const Color(0xFF1565C0).withValues(alpha: 0.7),
                               height: 1.5),
                         ),
                       ],
@@ -1199,8 +1193,8 @@ class _AppointmentCard extends StatelessWidget {
       photoUrl = match.isNotEmpty ? _doctorImages[match]! : '';
     }
 
-    final imageProvider = ImageUtils.getProfileImage(photoUrl ?? '');
-    final bool isAsset = photoUrl != null && photoUrl.startsWith('assets/');
+    final imageProvider = ImageUtils.getProfileImage(photoUrl);
+    final bool isAsset = photoUrl.startsWith('assets/');
 
     final isPending  = appt.status == 'pending' || appt.status == 'scheduled';
     final isApproved = appt.status == 'approved';
@@ -1231,14 +1225,14 @@ class _AppointmentCard extends StatelessWidget {
                     ? Image(
                         image: imageProvider,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.person,
+                        errorBuilder: (_, _, _) => const Icon(Icons.person,
                             size: 50, color: Colors.white38),
                       )
                     : (isAsset
                         ? Image.asset(
-                            photoUrl!,
+                            photoUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(
+                            errorBuilder: (_, _, _) => const Icon(
                                 Icons.person,
                                 size: 50,
                                 color: Colors.white38),

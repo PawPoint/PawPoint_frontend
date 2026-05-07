@@ -29,7 +29,7 @@ class _SplashScreen extends State<SplashScreen> {
         children: [
           // ── Logo at the top ────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.only(top: 64, bottom: 8),
+            padding: const EdgeInsets.only(top: 200, bottom: 8),
             child: Center(
               child: Image.asset(
                 "assets/images/LOGO.png",

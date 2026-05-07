@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:pawpoint_mobileapp/api_config.dart';
+
 class ManageProfilePage extends StatefulWidget {
   const ManageProfilePage({super.key});
 
@@ -14,7 +16,7 @@ class ManageProfilePage extends StatefulWidget {
 }
 
 class _ManageProfilePageState extends State<ManageProfilePage> {
-  static const String _baseUrl = 'http://localhost:8000';
+  static const String _baseUrl = ApiConfig.baseUrl;
 
   final _auth = FirebaseAuth.instance;
   final _picker = ImagePicker();

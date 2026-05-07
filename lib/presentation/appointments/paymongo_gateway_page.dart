@@ -1,32 +1,32 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pawpoint_mobileapp/models/appointment_model.dart';
 import 'booking_confirmation_page.dart';
+import 'package:pawpoint_mobileapp/api_config.dart';
 
-class PayMongoGatewayPage extends StatefulWidget {
+class PaymongoGatewayPage extends StatefulWidget {
   final AppointmentModel appointment;
   final double amountToPay;
 
-  const PayMongoGatewayPage({
+  const PaymongoGatewayPage({
     super.key,
     required this.appointment,
     required this.amountToPay,
   });
 
   @override
-  State<PayMongoGatewayPage> createState() => _PayMongoGatewayPageState();
+  State<PaymongoGatewayPage> createState() => _PaymongoGatewayPageState();
 }
 
-class _PayMongoGatewayPageState extends State<PayMongoGatewayPage> {
-  bool _isLoading = true;
-  bool _isVerifying = false;
+class _PaymongoGatewayPageState extends State<PaymongoGatewayPage> {
   String? _checkoutUrl;
-  String? _sessionId;       
+  String? _sessionId;
+  bool _isLoading = true;
   String? _errorMessage;
+  bool _isVerifying = false;
 
   @override
   void initState() {
@@ -36,9 +36,7 @@ class _PayMongoGatewayPageState extends State<PayMongoGatewayPage> {
 
   Future<void> _fetchCheckoutUrl() async {
     try {
-      final String baseUrl = kIsWeb || !defaultTargetPlatform.toString().toLowerCase().contains('android') 
-          ? 'http://localhost:8000' 
-          : 'http://10.0.2.2:8000';
+      final String baseUrl = ApiConfig.baseUrl;
 
       final response = await http.post(
         Uri.parse('$baseUrl/payments/create-checkout'),
@@ -53,7 +51,7 @@ class _PayMongoGatewayPageState extends State<PayMongoGatewayPage> {
         final data = jsonDecode(response.body);
         setState(() {
           _checkoutUrl = data['checkout_url'];
-          _sessionId = data['session_id'];   
+          _sessionId = data['session_id'];
           _isLoading = false;
         });
       } else {
@@ -142,9 +140,7 @@ class _PayMongoGatewayPageState extends State<PayMongoGatewayPage> {
     if (_sessionId == null) return false;
     
     try {
-      final String baseUrl = kIsWeb || !defaultTargetPlatform.toString().toLowerCase().contains('android') 
-          ? 'http://localhost:8000' 
-          : 'http://10.0.2.2:8000';
+      final String baseUrl = ApiConfig.baseUrl;
 
       final response = await http.get(
         Uri.parse('$baseUrl/payments/verify-checkout/$_sessionId'),

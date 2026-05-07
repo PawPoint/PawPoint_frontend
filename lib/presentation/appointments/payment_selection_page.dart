@@ -41,7 +41,7 @@ class _PaymentSelectionPageState extends State<PaymentSelectionPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => PayMongoGatewayPage(
+          builder: (_) => PaymongoGatewayPage(
             appointment: updatedAppointment,
             amountToPay: amountToPay,
           ),

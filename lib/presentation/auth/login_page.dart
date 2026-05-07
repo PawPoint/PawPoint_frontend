@@ -38,19 +38,19 @@ class _LoginPage extends State<LoginPage> {
           padding: const EdgeInsets.symmetric(horizontal: 30),
           child: Column(
             children: [
-              const SizedBox(height: 40),
+              const SizedBox(height: 16),
+              // Back button row
               Row(
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back_ios, size: 20),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  const Spacer(),
-                  const AppLogo(width: 250),
-                  const Spacer(),
-                  const SizedBox(width: 48),
                 ],
               ),
+              const SizedBox(height: 8),
+              // Logo row — centered, emphasized
+              const Center(child: AppLogo(width: 260)),
               const Spacer(),
               Stack(
                 alignment: Alignment.bottomCenter,
@@ -63,10 +63,10 @@ class _LoginPage extends State<LoginPage> {
                     keyboardType: TextInputType.emailAddress,
                   ),
                   Positioned(
-                    bottom: -30,
+                    bottom: -10,
                     child: Image.asset(
                       "assets/images/c1.png",
-                      width: 350,
+                      width: 260,
                       fit: BoxFit.contain,
                     ),
                   ),
