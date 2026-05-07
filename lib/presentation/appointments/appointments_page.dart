@@ -181,10 +181,8 @@ class _AppointmentsPageState extends State<AppointmentsPage>
 
   Future<void> _cancelAppointment(AppointmentModel appt) async {
     final hasPaid = appt.amountPaidOnline > 0;
-    final isPending = appt.status == 'pending' || appt.status == 'scheduled';
-    final isApproved = appt.status == 'approved';
 
-    // ── Pre-cancel dialog with status-aware refund message ────────────────────
+    // ── Pre-cancel dialog — user-initiated = no refund ────────────────────────
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -201,96 +199,49 @@ class _AppointmentsPageState extends State<AppointmentsPage>
             ),
             if (hasPaid) ...[
               const SizedBox(height: 14),
-              // Pending → full refund
-              if (isPending)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.shade200),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.check_circle_outline_rounded,
-                          color: Colors.green.shade700, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Full Refund Eligible',
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.green.shade700,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              'Since your appointment is still pending, your '  
-                              'downpayment of ₱${appt.amountPaidOnline.toInt()} '
-                              'will be fully refunded.',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: Colors.green.shade700,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+              // User-initiated cancellation — ALWAYS no refund
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade200),
                 ),
-              // Approved → no refund
-              if (isApproved)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.warning_amber_rounded,
-                          color: Colors.red.shade700, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '⚠ No Refund — Downpayment Forfeited',
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.red.shade700,
-                              ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: Colors.red.shade700, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '⚠ No Refund — Downpayment Forfeited',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.red.shade700,
                             ),
-                            const SizedBox(height: 3),
-                            Text(
-                              'Your appointment was already approved. '  
-                              'Your downpayment of ₱${appt.amountPaidOnline.toInt()} '  
-                              'will NOT be refunded.',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: Colors.red.shade700,
-                                height: 1.4,
-                              ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Your downpayment of ₱${appt.amountPaidOnline.toInt()} '
+                            'will NOT be refunded for user-initiated cancellations.',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: Colors.red.shade700,
+                              height: 1.4,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+              ),
             ],
           ],
         ),
@@ -1419,8 +1370,10 @@ class _AppointmentCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                    Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: 6,
+                      runSpacing: 6,
                       children: [
                         // Reschedule proposed — Accept/Decline only
                         if (appt.status == 'reschedule_proposed') ...
@@ -1430,13 +1383,11 @@ class _AppointmentCard extends StatelessWidget {
                             filled: false,
                             onTap: onDeclineReschedule ?? () {},
                           ),
-                          const SizedBox(width: 6),
                           _ActionButton(
                             label: 'Accept',
                             filled: true,
                             onTap: onAcceptReschedule ?? () {},
                           ),
-                          const SizedBox(width: 6),
                         ],
                         // Reschedule — pending only (not when proposed)
                         if (isPending && onReschedule != null)
@@ -1445,8 +1396,6 @@ class _AppointmentCard extends StatelessWidget {
                             filled: false,
                             onTap: onReschedule!,
                           ),
-                        if (isPending && onReschedule != null)
-                          const SizedBox(width: 6),
                         // Cancel — not completed/cancelled/proposed
                         if (!isCompleted && !isCancelled &&
                             appt.status != 'reschedule_proposed')
@@ -1455,9 +1404,6 @@ class _AppointmentCard extends StatelessWidget {
                             filled: false,
                             onTap: onCancel ?? () {},
                           ),
-                        if (!isCompleted && !isCancelled &&
-                            appt.status != 'reschedule_proposed')
-                          const SizedBox(width: 6),
                         _ActionButton(
                           label: 'View Details',
                           filled: true,

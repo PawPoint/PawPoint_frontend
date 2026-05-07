@@ -34,13 +34,15 @@ class _LoginPage extends State<LoginPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              // Back button row
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 16),
+
+            // ── Fixed header — always visible, never covered ──────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back_ios, size: 20),
@@ -48,54 +50,65 @@ class _LoginPage extends State<LoginPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              // Logo row — centered, emphasized
-              const Center(child: AppLogo(width: 260)),
-              const Spacer(),
-              Stack(
-                alignment: Alignment.bottomCenter,
-                clipBehavior: Clip.none,
-                children: [
-                  AppTextField(
-                    controller: _emailController,
-                    hint: "Email",
-                    isRounded: false,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  Positioned(
-                    bottom: -10,
-                    child: Image.asset(
-                      "assets/images/c1.png",
-                      width: 260,
-                      fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 8),
+            const Center(child: AppLogo(width: 250)),
+            const SizedBox(height: 12),
+
+            // ── Scrollable form — slides under the fixed header ───────────
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 30),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    Stack(
+                      alignment: Alignment.bottomCenter,
+                      clipBehavior: Clip.none,
+                      children: [
+                        AppTextField(
+                          controller: _emailController,
+                          hint: "Email",
+                          isRounded: false,
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+                        Positioned(
+                          bottom: -10,
+                          child: Image.asset(
+                            "assets/images/c1.png",
+                            width: 260,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-              AppTextField(
-                controller: _passwordController,
-                hint: "Password",
-                obscureText: true,
-                isRounded: false,
-              ),
-              const SizedBox(height: 40),
-              AppButton(
-                text: "LOGIN",
-                isLoading: _isLoading,
-                onPressed: _handleLogin,
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: _showForgotPasswordDialog,
-                child: const Text(
-                  "Forgot your password?",
-                  style: TextStyle(color: Colors.black54),
+                    const SizedBox(height: 15),
+                    AppTextField(
+                      controller: _passwordController,
+                      hint: "Password",
+                      obscureText: true,
+                      isRounded: false,
+                    ),
+                    const SizedBox(height: 40),
+                    AppButton(
+                      text: "LOGIN",
+                      isLoading: _isLoading,
+                      onPressed: _handleLogin,
+                    ),
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: _showForgotPasswordDialog,
+                      child: const Text(
+                        "Forgot your password?",
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
               ),
-              const Spacer(),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

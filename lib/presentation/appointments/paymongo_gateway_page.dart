@@ -70,11 +70,20 @@ class _PaymongoGatewayPageState extends State<PaymongoGatewayPage> {
 
   Future<void> _launchPayMongo() async {
     if (_checkoutUrl == null) return;
-    
+
     final uri = Uri.parse(_checkoutUrl!);
-    if (await canLaunchUrl(uri)) {
+    try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
       _showReturnPrompt();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open payment page: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
