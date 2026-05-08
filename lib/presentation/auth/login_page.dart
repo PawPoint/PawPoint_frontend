@@ -285,8 +285,9 @@ class _LoginPage extends State<LoginPage> with SingleTickerProviderStateMixin {
                   }
                 } on FirebaseAuthException catch (e) {
                   setDialogState(() => isSending = false);
-                  if (mounted)
+                  if (mounted) {
                     _showErrorSnackBar(ErrorHandler.getErrorMessage(e));
+                  }
                 }
               },
             ),

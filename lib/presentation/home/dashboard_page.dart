@@ -24,7 +24,6 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   int _selectedIndex = 0;
-  int _unreadNotifCount = 0;
 
   final _notifService = NotificationService();
   final _apptService = AppointmentService();

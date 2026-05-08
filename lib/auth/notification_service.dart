@@ -243,19 +243,6 @@ class NotificationService {
     }
   }
 
-  // ── Helper: upsert so we never duplicate ─────────────────────────────────
-
-  Future<void> _upsertNotification({
-    required String userId,
-    required String notifId,
-    required NotificationModel model,
-  }) async {
-    final ref = _notifCol(userId).doc(notifId);
-    final snap = await ref.get();
-    if (!snap.exists) {
-      await ref.set(model.toMap());
-    }
-  }
 
   // ── Date formatter ────────────────────────────────────────────────────────
 

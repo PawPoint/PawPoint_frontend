@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -137,7 +136,7 @@ class _MyPetsPageState extends State<MyPetsPage> {
                               // Padding bottom 100 so the last card isn't hidden by the button
                               padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
                               itemCount: pets.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 0),
+                              separatorBuilder: (context, index) => const SizedBox(height: 0),
                               itemBuilder: (context, index) {
                                 return _PetListTile(pet: pets[index]);
                               },

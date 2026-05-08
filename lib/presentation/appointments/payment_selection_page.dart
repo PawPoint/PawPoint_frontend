@@ -15,7 +15,6 @@ class PaymentSelectionPage extends StatefulWidget {
 
 class _PaymentSelectionPageState extends State<PaymentSelectionPage> {
   late double _totalPrice;
-  bool _isFullPayment = false; // Default to 30% Downpayment
 
   @override
   void initState() {
@@ -24,9 +23,9 @@ class _PaymentSelectionPageState extends State<PaymentSelectionPage> {
   }
 
   void _proceedToPayment() {
-    final amountToPay = _isFullPayment ? _totalPrice : _totalPrice * 0.30;
-    final balanceRemaining = _isFullPayment ? 0.0 : _totalPrice * 0.70;
-    final paymentStatus = _isFullPayment ? 'fully_paid' : 'partially_paid';
+    final amountToPay = _totalPrice * 0.30;
+    final balanceRemaining = _totalPrice * 0.70;
+    final paymentStatus = 'partially_paid';
 
     final updatedAppointment = widget.appointment.copyWith(
       totalPrice: _totalPrice,
@@ -191,14 +190,6 @@ class _PaymentSelectionPageState extends State<PaymentSelectionPage> {
                     const SizedBox(height: 14),
                     _TermsSection(
                       number: '4',
-                      title: 'Full Payment',
-                      content:
-                          'If you pay the full amount online, no additional payment is needed at the clinic. '
-                          'Full payments are also final upon cancellation.',
-                    ),
-                    const SizedBox(height: 14),
-                    _TermsSection(
-                      number: '5',
                       title: 'Clinic Rights',
                       content:
                           'PawPoint reserves the right to cancel or reschedule appointments due to '
@@ -322,15 +313,8 @@ class _PaymentSelectionPageState extends State<PaymentSelectionPage> {
             _OptionCard(
               title: 'Minimum 30% Downpayment',
               subtitle: 'Pay ${kFormatPrice(widget.appointment.service).replaceFirst('₱', '₱') == '' ? '' : '₱${(_totalPrice * 0.3).toInt()}'} now, rest in clinic.',
-              isSelected: !_isFullPayment,
-              onTap: () => setState(() => _isFullPayment = false),
-            ),
-            const SizedBox(height: 12),
-            _OptionCard(
-              title: '100% Full Online Payment',
-              subtitle: 'Pay the entire amount now for a faster visit.',
-              isSelected: _isFullPayment,
-              onTap: () => setState(() => _isFullPayment = true),
+              isSelected: true,
+              onTap: () {},
             ),
             const SizedBox(height: 40),
             SizedBox(
