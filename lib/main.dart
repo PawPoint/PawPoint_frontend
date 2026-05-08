@@ -13,10 +13,17 @@ import 'presentation/home/dashboard_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase using the firebase_options.dart file shown in your lib folder
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Initialize Firebase — guarded against duplicate-app errors on hot restart
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (e) {
+    // Firebase already initialized (e.g. hot restart on Android) — safe to ignore
+    debugPrint('Firebase already initialized: $e');
+  }
   
   runApp(const MyApp());
 }

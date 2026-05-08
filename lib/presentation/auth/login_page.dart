@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../home/dashboard_page.dart';
-import '../../../../auth/auth_service.dart';
+import '../../auth/auth_service.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_logo.dart';
@@ -17,89 +17,147 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPage();
 }
 
-class _LoginPage extends State<LoginPage> {
+class _LoginPage extends State<LoginPage> with SingleTickerProviderStateMixin {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+
+  late final AnimationController _animController;
+  late final Animation<double> _fadeAnim;
+  late final Animation<Offset> _slideAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.08),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
+
+    _animController.forward();
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _animController.dispose();
     super.dispose();
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, size: 20),
-                    onPressed: () => Navigator.pop(context),
+        child: FadeTransition(
+          opacity: _fadeAnim,
+          child: SlideTransition(
+            position: _slideAnim,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 16),
+
+                // ── Header ─────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Center(child: AppLogo(width: 200)),
+                    ],
                   ),
-                  const Spacer(),
-                  const AppLogo(width: 250),
-                  const Spacer(),
-                  const SizedBox(width: 48),
-                ],
-              ),
-              const Spacer(),
-              Stack(
-                alignment: Alignment.bottomCenter,
-                clipBehavior: Clip.none,
-                children: [
-                  AppTextField(
-                    controller: _emailController,
-                    hint: "Email",
-                    isRounded: false,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  Positioned(
-                    bottom: -30,
-                    child: Image.asset(
-                      "assets/images/c1.png",
-                      width: 350,
-                      fit: BoxFit.contain,
+                ),
+
+                // The space between the logo and fields
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 30),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 170), 
+
+                        Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.topCenter,
+                          children: [
+                            AppTextField(
+                              controller: _emailController,
+                              hint: "Email Address",
+                              prefixIcon: Icons.email_outlined,
+                              isRounded: true, 
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+
+                            // The Cat Position
+                            Positioned(
+                              top: -105, // Adjust this to sit the cat on the border
+                              child: IgnorePointer(
+                                child: Image.asset(
+                                  "assets/images/c1.png",
+                                  width: 250,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 15),
+
+                        // Password Field
+                        AppTextField(
+                          controller: _passwordController,
+                          hint: "Password",
+                          prefixIcon: Icons.lock_outline_rounded,
+                          obscureText: true,
+                          isRounded: true,
+                        ),
+
+                        const SizedBox(height: 35),
+
+                        AppButton(
+                          text: "LOGIN",
+                          isLoading: _isLoading,
+                          onPressed: _handleLogin,
+                        ),
+
+                        const SizedBox(height: 25),
+
+                        TextButton(
+                          onPressed: _showForgotPasswordDialog,
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.black54,
+                          ),
+                          child: const Text(
+                            "Forgot your password?",
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 15),
-              AppTextField(
-                controller: _passwordController,
-                hint: "Password",
-                obscureText: true,
-                isRounded: false,
-              ),
-              const SizedBox(height: 40),
-              AppButton(
-                text: "LOGIN",
-                isLoading: _isLoading,
-                onPressed: _handleLogin,
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: _showForgotPasswordDialog,
-                child: const Text(
-                  "Forgot your password?",
-                  style: TextStyle(color: Colors.black54),
                 ),
-              ),
-              const Spacer(),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+  
 
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
@@ -120,17 +178,12 @@ class _LoginPage extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      final user = await AuthService().login(
-        email: email,
-        password: password,
-      );
+      final user = await AuthService().login(email: email, password: password);
 
       if (mounted && user != null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => const DashboardPage(),
-          ),
+          MaterialPageRoute(builder: (context) => const DashboardPage()),
         );
       }
     } catch (e) {
@@ -161,7 +214,9 @@ class _LoginPage extends State<LoginPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(
             'Reset Password',
             style: AppTextStyles.h1.copyWith(fontSize: 18),
@@ -172,7 +227,11 @@ class _LoginPage extends State<LoginPage> {
             children: [
               const Text(
                 'Enter your email address and we\'ll send you a link to reset your password.',
-                style: TextStyle(fontSize: 13.5, color: Colors.black54, height: 1.5),
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: Colors.black54,
+                  height: 1.5,
+                ),
               ),
               const SizedBox(height: 16),
               AppTextField(
@@ -186,13 +245,16 @@ class _LoginPage extends State<LoginPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.black45)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.black45),
+              ),
             ),
             AppButton(
               text: 'Send Reset Link',
               isLoading: isSending,
-              height: 40,
-              width: 150,
+              height: 30,
+              width: 200,
               hasShadow: false,
               onPressed: () async {
                 final email = emailController.text.trim();
@@ -203,12 +265,16 @@ class _LoginPage extends State<LoginPage> {
                 }
                 setDialogState(() => isSending = true);
                 try {
-                  await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                  await FirebaseAuth.instance.sendPasswordResetEmail(
+                    email: email,
+                  );
                   if (ctx.mounted) Navigator.pop(ctx);
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Reset link sent to $email. Check your inbox!'),
+                        content: Text(
+                          'Reset link sent to $email. Check your inbox!',
+                        ),
                         backgroundColor: AppColors.primary,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
@@ -219,7 +285,8 @@ class _LoginPage extends State<LoginPage> {
                   }
                 } on FirebaseAuthException catch (e) {
                   setDialogState(() => isSending = false);
-                  if (mounted) _showErrorSnackBar(ErrorHandler.getErrorMessage(e));
+                  if (mounted)
+                    _showErrorSnackBar(ErrorHandler.getErrorMessage(e));
                 }
               },
             ),

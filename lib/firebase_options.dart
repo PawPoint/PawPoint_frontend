@@ -51,19 +51,19 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyD5SoQ_wLenv19Fe8t2eqC8veaDQrBWpVI',
-    appId: '1:64959176592:android:7793ded93cc31df6ae5d15',
-    messagingSenderId: '64959176592',
-    projectId: 'pawpoint-92f40',
-    storageBucket: 'pawpoint-92f40.firebasestorage.app',
+    apiKey: 'AIzaSyChKD0gpZPQ-KSiaZaZmubJ1oJLhjKbDC0',
+    appId: '1:325353125400:android:b1d4c04bb2f919f39a356d',
+    messagingSenderId: '325353125400',
+    projectId: 'pawpoint-8822d',
+    storageBucket: 'pawpoint-8822d.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAdk-gJa9-kHl8gr3S_3Wd52yYvdhwWKvk',
     appId: '1:64959176592:ios:29a7f5c332692b69ae5d15',
     messagingSenderId: '64959176592',
-    projectId: 'pawpoint-92f40',
-    storageBucket: 'pawpoint-92f40.firebasestorage.app',
+    projectId: 'pawpoint-8822d',
+    storageBucket: 'pawpoint-8822d.firebasestorage.app',
     iosBundleId: 'com.example.pawpointMobileapp',
   );
 
@@ -71,8 +71,8 @@ class DefaultFirebaseOptions {
     apiKey: 'AIzaSyAdk-gJa9-kHl8gr3S_3Wd52yYvdhwWKvk',
     appId: '1:64959176592:ios:29a7f5c332692b69ae5d15',
     messagingSenderId: '64959176592',
-    projectId: 'pawpoint-92f40',
-    storageBucket: 'pawpoint-92f40.firebasestorage.app',
+    projectId: 'pawpoint-8822d',
+    storageBucket: 'pawpoint-8822d.firebasestorage.app',
     iosBundleId: 'com.example.pawpointMobileapp',
   );
 

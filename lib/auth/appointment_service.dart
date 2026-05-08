@@ -5,8 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawpoint_mobileapp/models/appointment_model.dart';
 import '../core/utils/error_handler.dart';
 
+import 'package:pawpoint_mobileapp/api_config.dart';
+
 class AppointmentService {
-  static const String _baseUrl = 'http://localhost:8000';
+  static const String _baseUrl = ApiConfig.baseUrl;
 
   // Helper function to grab the token
   Future<String?> _getToken() async {
@@ -77,7 +79,7 @@ class AppointmentService {
     }
   }
 
-  /// Cancel an appointment — returns refund outcome alongside the updated appointment.
+  /// Cancel an appointment — returns outcome alongside the updated appointment.
   Future<CancelResult> cancelAppointment({
     required String appointmentId,
   }) async {
@@ -97,8 +99,6 @@ class AppointmentService {
         final apptData = data['appointment'] as Map<String, dynamic>;
         return CancelResult(
           appointment: AppointmentModel.fromMap(apptData['id'], apptData),
-          refundStatus: apptData['refundStatus'] as String? ?? 'unknown',
-          refundAmount: (apptData['refundAmount'] as num?)?.toDouble() ?? 0.0,
         );
       } else {
         throw Exception('Failed to cancel appointment');
@@ -164,7 +164,7 @@ class AppointmentService {
     }
   }
 
-  /// Decline the clinic's proposed reschedule → cancels and processes full refund.
+  /// Decline the clinic's proposed reschedule → cancels.
   Future<CancelResult> declineReschedule({
     required String appointmentId,
   }) async {
@@ -182,8 +182,6 @@ class AppointmentService {
         final apptData = data['appointment'] as Map<String, dynamic>;
         return CancelResult(
           appointment: AppointmentModel.fromMap(apptData['id'], apptData),
-          refundStatus: apptData['refundStatus'] as String? ?? 'unknown',
-          refundAmount: (apptData['refundAmount'] as num?)?.toDouble() ?? 0.0,
         );
       } else {
         final detail = jsonDecode(response.body)['detail'] ?? 'Failed to decline reschedule';
@@ -198,41 +196,13 @@ class AppointmentService {
 /// Holds the result of a cancellation request.
 class CancelResult {
   final AppointmentModel appointment;
-  final String refundStatus;
-  final double refundAmount;
 
   const CancelResult({
     required this.appointment,
-    required this.refundStatus,
-    required this.refundAmount,
   });
 
-  /// Human-readable snackbar message based on the refund outcome.
-  String get snackbarMessage {
-    switch (refundStatus) {
-      case 'refunded':
-        return 'Appointment cancelled. A full refund of ₱${refundAmount.toInt()} has been initiated. 💳';
-      case 'refund_pending':
-        return 'Appointment cancelled. Your refund of ₱${refundAmount.toInt()} is being processed. 🔄';
-      case 'forfeited':
-        return 'Appointment cancelled. Downpayment is non-refundable (appointment was approved). 🐾';
-      case 'refund_not_needed':
-        return 'Appointment cancelled successfully 🐾';
-      default:
-        return 'Appointment cancelled successfully 🐾';
-    }
-  }
+  /// Human-readable snackbar message.
+  String get snackbarMessage => 'Appointment cancelled successfully 🐾';
 
-  Color get snackbarColor {
-    switch (refundStatus) {
-      case 'refunded':
-        return const Color(0xFF2E7D32);
-      case 'refund_pending':
-        return const Color(0xFF1565C0);
-      case 'forfeited':
-        return const Color(0xFFC62828);
-      default:
-        return Colors.black;
-    }
-  }
+  Color get snackbarColor => Colors.black;
 }

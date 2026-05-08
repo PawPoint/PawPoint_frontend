@@ -29,24 +29,6 @@ class _DashboardPageState extends State<DashboardPage> {
   final _notifService = NotificationService();
   final _apptService = AppointmentService();
 
-  final List<Map<String, String>> _experts = [
-    {
-      'name': 'Dr. Ji-eun Park',
-      'image': 'assets/images/doctor1-removebg-previewedit.png',
-    },
-    {
-      'name': 'Dr. Matteo Rossi',
-      'image': 'assets/images/doctor2-removebg-previewedit.png',
-    },
-    {
-      'name': 'Nurse Hana Kim',
-      'image': 'assets/images/n1-removebg-preview.png',
-    },
-    {
-      'name': 'Nurse Sofia Müller',
-      'image': 'assets/images/n2-removebg-previewedit.png',
-    },
-  ];
 
   final List<Map<String, String>> _services = [
     {
@@ -96,37 +78,32 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    _loadUnreadCount();
+    // Sync notifications in background after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncNotifications();
+    });
   }
 
-  Future<void> _loadUnreadCount() async {
+  Future<void> _syncNotifications() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     try {
-      final appointments =
-          await _apptService.getAppointments();
+      // 1. Fetch latest appointments
+      final appointments = await _apptService.getAppointments();
+      // 2. Sync them to Firestore notifications (using the optimized batching logic)
       await _notifService.syncAppointmentNotifications(
         userId: user.uid,
         appointments: appointments,
       );
-      final notifs =
-          await _notifService.getNotifications(userId: user.uid);
-      final adminNotifs =
-          await _notifService.getNewServiceNotifications();
-      final all = [
-        ...notifs,
-        ...adminNotifs.where((a) => !notifs.any((n) => n.id == a.id))
-      ];
-      if (mounted) {
-        setState(() {
-          _unreadNotifCount = all.where((n) => !n.isRead).length;
-        });
-      }
-    } catch (_) {}
+    } catch (_) {
+      // Fail silently in background
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -155,7 +132,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           MaterialPageRoute(
                             builder: (_) => const NotificationsPage(),
                           ),
-                        ).then((_) => _loadUnreadCount());
+                        ).then((_) => _syncNotifications());
                       },
                       child: Stack(
                         clipBehavior: Clip.none,
@@ -169,29 +146,35 @@ class _DashboardPageState extends State<DashboardPage> {
                               color: Colors.black54,
                             ),
                           ),
-                          if (_unreadNotifCount > 0)
-                            Positioned(
-                              right: -2,
-                              top: -2,
-                              child: Container(
-                                width: 17,
-                                height: 17,
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  _unreadNotifCount > 9
-                                      ? '9+'
-                                      : '$_unreadNotifCount',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w700,
+                          if (user != null)
+                            StreamBuilder<int>(
+                              stream: _notifService.getUnreadCountStream(user.uid),
+                              builder: (context, snapshot) {
+                                final count = snapshot.data ?? 0;
+                                if (count == 0) return const SizedBox.shrink();
+                                
+                                return Positioned(
+                                  right: -2,
+                                  top: -2,
+                                  child: Container(
+                                    width: 17,
+                                    height: 17,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      count > 9 ? '9+' : '$count',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
                         ],
                       ),
@@ -307,49 +290,85 @@ class _DashboardPageState extends State<DashboardPage> {
                     const SizedBox(height: 16),
                     SizedBox(
                       height: 130,
-                      child: StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('admins')
-                            .where('isActive', isEqualTo: true)
-                            .snapshots(),
-                        builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-                          final experts = snapshot.data!.docs;
-                          if (experts.isEmpty) {
+                      child: Builder(
+                        builder: (context) {
+                          final currentUser = FirebaseAuth.instance.currentUser;
+
+                          // Guest users — skip Firestore query entirely
+                          if (currentUser == null) {
                             return Center(
                               child: Text(
                                 'No experts available yet',
-                                style: GoogleFonts.poppins(fontSize: 12, color: Colors.black38),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.black38,
+                                ),
                               ),
                             );
                           }
-                          return ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: experts.length,
-                            itemBuilder: (context, index) {
-                              final expert = experts[index].data() as Map<String, dynamic>;
-                              final name = expert['name'] ?? 'Expert';
-                              final photoUrl = expert['photoUrl'] ?? '';
-                              return GestureDetector(
-                                onTap: () {
-                                  final user = FirebaseAuth.instance.currentUser;
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => user != null
-                                          ? BookNowPage(
-                                              initialDoctor: name,
-                                            )
-                                          : const LoginsignupPage(),
+
+                          return StreamBuilder<QuerySnapshot>(
+                            stream: FirebaseFirestore.instance
+                                .collection('admins')
+                                .where('isActive', isEqualTo: true)
+                                .snapshots(),
+                            builder: (context, snapshot) {
+                              // Handle errors (e.g. permission denied)
+                              if (snapshot.hasError) {
+                                return Center(
+                                  child: Text(
+                                    'No experts available yet',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.black38,
+                                    ),
+                                  ),
+                                );
+                              }
+                              if (!snapshot.hasData) {
+                                return const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.black,
+                                  ),
+                                );
+                              }
+                              final experts = snapshot.data!.docs;
+                              if (experts.isEmpty) {
+                                return Center(
+                                  child: Text(
+                                    'No experts available yet',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.black38,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: experts.length,
+                                itemBuilder: (context, index) {
+                                  final expert = experts[index].data()
+                                      as Map<String, dynamic>;
+                                  final name = expert['name'] ?? 'Expert';
+                                  final photoUrl = expert['photoUrl'] ?? '';
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => BookNowPage(
+                                            initialDoctor: name,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: _ExpertCard(
+                                      name: name,
+                                      imagePath: photoUrl,
                                     ),
                                   );
                                 },
-                                child: _ExpertCard(
-                                  name: name,
-                                  imagePath: photoUrl,
-                                ),
                               );
                             },
                           );
@@ -663,6 +682,7 @@ class _ServiceCard extends StatelessWidget {
                       ),
                       child: Text(
                         'Book an appointment now!',
+                        textAlign: TextAlign.center,
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,

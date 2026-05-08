@@ -1,4 +1,6 @@
 import "package:flutter/material.dart";
+import 'package:http/http.dart' as http;
+import "../../api_config.dart";
 import "../home/dashboard_page.dart";
 import "dart:async";
 
@@ -13,12 +15,27 @@ class _SplashScreen extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // Warm up the backend (non-blocking)
+    _warmUpBackend();
+
     Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const DashboardPage()),
-      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardPage()),
+        );
+      }
     });
+  }
+
+  Future<void> _warmUpBackend() async {
+    try {
+      // Just a simple HEAD or GET request to trigger the Render instance to wake up
+      await http.get(Uri.parse(ApiConfig.baseUrl)).timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Ignore errors; this is just a best-effort wake-up call
+    }
   }
 
   @override
@@ -29,7 +46,7 @@ class _SplashScreen extends State<SplashScreen> {
         children: [
           // ── Logo at the top ────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.only(top: 64, bottom: 8),
+            padding: const EdgeInsets.only(top: 200, bottom: 8),
             child: Center(
               child: Image.asset(
                 "assets/images/LOGO.png",

@@ -8,6 +8,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:pawpoint_mobileapp/models/pet_model.dart';
 
+import 'package:pawpoint_mobileapp/api_config.dart';
+
 class AddPetPage extends StatefulWidget {
   final String petType;
 
@@ -249,7 +251,7 @@ class _AddPetPageState extends State<AddPetPage> {
   }
 
   // ── Backend API base URL ──────────────────────────────────────────
-  static const String _baseUrl = 'http://localhost:8000';
+  static const String _baseUrl = ApiConfig.baseUrl;
 
   Future<void> _savePet() async {
     final name = _nameController.text.trim();
@@ -389,7 +391,7 @@ class _AddPetPageState extends State<AddPetPage> {
           ],
         ),
         content: Text(
-          'Are you sure you want to mark ${widget.editPet!.name} as deceased?\n\nThis action cannot be undone. The pet will be displayed in grayscale and can no longer be edited.',
+          'Are you sure you want to mark ${widget.editPet!.name} as deceased?',
           style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54),
         ),
         actions: [

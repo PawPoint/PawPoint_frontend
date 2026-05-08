@@ -135,12 +135,6 @@ class _AppointmentsPageState extends State<AppointmentsPage>
   List<AppointmentModel> get _completed =>
       _allAppointments.where((a) => a.status == 'completed').toList();
 
-  List<AppointmentModel> get _pending =>
-      _allAppointments.where((a) =>
-          a.status == 'pending' ||
-          a.status == 'scheduled' ||
-          a.status == 'reschedule_proposed').toList();
-
   List<AppointmentModel> get _cancelled =>
       _allAppointments.where((a) =>
           a.status == 'cancelled' ||
@@ -186,11 +180,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
   }
 
   Future<void> _cancelAppointment(AppointmentModel appt) async {
-    final hasPaid = appt.amountPaidOnline > 0;
-    final isPending = appt.status == 'pending' || appt.status == 'scheduled';
-    final isApproved = appt.status == 'approved';
-
-    // ── Pre-cancel dialog with status-aware refund message ────────────────────
+    // ── Pre-cancel dialog ────────────────────────
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -205,99 +195,6 @@ class _AppointmentsPageState extends State<AppointmentsPage>
               'Are you sure you want to cancel your ${appt.service} appointment with ${appt.doctor}?',
               style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54),
             ),
-            if (hasPaid) ...[
-              const SizedBox(height: 14),
-              // Pending → full refund
-              if (isPending)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.shade200),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.check_circle_outline_rounded,
-                          color: Colors.green.shade700, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Full Refund Eligible',
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.green.shade700,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              'Since your appointment is still pending, your '  
-                              'downpayment of ₱${appt.amountPaidOnline.toInt()} '
-                              'will be fully refunded.',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: Colors.green.shade700,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              // Approved → no refund
-              if (isApproved)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.warning_amber_rounded,
-                          color: Colors.red.shade700, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '⚠ No Refund — Downpayment Forfeited',
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.red.shade700,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              'Your appointment was already approved. '  
-                              'Your downpayment of ₱${appt.amountPaidOnline.toInt()} '  
-                              'will NOT be refunded.',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: Colors.red.shade700,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
           ],
         ),
         actions: [
@@ -569,8 +466,9 @@ class _AppointmentsPageState extends State<AppointmentsPage>
         title: Text('Decline Reschedule?',
             style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
         content: Text(
-          'Declining will cancel this appointment and process a full refund of your downpayment.',
-          style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54, height: 1.5),
+          'Declining will cancel this appointment.',
+          style: GoogleFonts.poppins(
+              fontSize: 13, color: Colors.black54, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -630,8 +528,8 @@ class _AppointmentsPageState extends State<AppointmentsPage>
       photoUrl = match.isNotEmpty ? _doctorImages[match]! : '';
     }
 
-    final imageProvider = ImageUtils.getProfileImage(photoUrl ?? '');
-    final bool isAsset = photoUrl != null && photoUrl.startsWith('assets/');
+    final imageProvider = ImageUtils.getProfileImage(photoUrl);
+    final bool isAsset = photoUrl.startsWith('assets/');
 
     showModalBottomSheet(
       context: context,
@@ -688,7 +586,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
                             ? Image(
                                 image: imageProvider,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(
+                                errorBuilder: (_, _, _) => const Icon(
                                   Icons.person,
                                   size: 30,
                                   color: Colors.white38,
@@ -698,7 +596,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
                                 ? Image.asset(
                                     photoUrl!,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(
+                                    errorBuilder: (_, _, _) => const Icon(
                                       Icons.person,
                                       size: 30,
                                       color: Colors.white38,
@@ -787,7 +685,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
                     decoration: BoxDecoration(
                       color: const Color(0xFFE3F2FD),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFF1565C0).withOpacity(0.3)),
+                      border: Border.all(color: const Color(0xFF1565C0).withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -819,7 +717,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
                           'The clinic has proposed a new schedule. Please accept or decline.',
                           style: GoogleFonts.poppins(
                               fontSize: 11,
-                              color: const Color(0xFF1565C0).withOpacity(0.7),
+                              color: const Color(0xFF1565C0).withValues(alpha: 0.7),
                               height: 1.5),
                         ),
                       ],
@@ -1199,8 +1097,8 @@ class _AppointmentCard extends StatelessWidget {
       photoUrl = match.isNotEmpty ? _doctorImages[match]! : '';
     }
 
-    final imageProvider = ImageUtils.getProfileImage(photoUrl ?? '');
-    final bool isAsset = photoUrl != null && photoUrl.startsWith('assets/');
+    final imageProvider = ImageUtils.getProfileImage(photoUrl);
+    final bool isAsset = photoUrl.startsWith('assets/');
 
     final isPending  = appt.status == 'pending' || appt.status == 'scheduled';
     final isApproved = appt.status == 'approved';
@@ -1231,14 +1129,14 @@ class _AppointmentCard extends StatelessWidget {
                     ? Image(
                         image: imageProvider,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.person,
+                        errorBuilder: (_, _, _) => const Icon(Icons.person,
                             size: 50, color: Colors.white38),
                       )
                     : (isAsset
                         ? Image.asset(
-                            photoUrl!,
+                            photoUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(
+                            errorBuilder: (_, _, _) => const Icon(
                                 Icons.person,
                                 size: 50,
                                 color: Colors.white38),
@@ -1425,8 +1323,10 @@ class _AppointmentCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                    Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: 6,
+                      runSpacing: 6,
                       children: [
                         // Reschedule proposed — Accept/Decline only
                         if (appt.status == 'reschedule_proposed') ...
@@ -1436,13 +1336,11 @@ class _AppointmentCard extends StatelessWidget {
                             filled: false,
                             onTap: onDeclineReschedule ?? () {},
                           ),
-                          const SizedBox(width: 6),
                           _ActionButton(
                             label: 'Accept',
                             filled: true,
                             onTap: onAcceptReschedule ?? () {},
                           ),
-                          const SizedBox(width: 6),
                         ],
                         // Reschedule — pending only (not when proposed)
                         if (isPending && onReschedule != null)
@@ -1451,8 +1349,6 @@ class _AppointmentCard extends StatelessWidget {
                             filled: false,
                             onTap: onReschedule!,
                           ),
-                        if (isPending && onReschedule != null)
-                          const SizedBox(width: 6),
                         // Cancel — not completed/cancelled/proposed
                         if (!isCompleted && !isCancelled &&
                             appt.status != 'reschedule_proposed')
@@ -1461,9 +1357,6 @@ class _AppointmentCard extends StatelessWidget {
                             filled: false,
                             onTap: onCancel ?? () {},
                           ),
-                        if (!isCompleted && !isCancelled &&
-                            appt.status != 'reschedule_proposed')
-                          const SizedBox(width: 6),
                         _ActionButton(
                           label: 'View Details',
                           filled: true,
