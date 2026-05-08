@@ -53,6 +53,15 @@ class NotificationService {
     await batch.commit();
   }
 
+  // ── Real-time unread count stream ─────────────────────────────────────────
+
+  Stream<int> getUnreadCountStream(String userId) {
+    return _notifCol(userId)
+        .where('isRead', isEqualTo: false)
+        .snapshots()
+        .map((snap) => snap.docs.length);
+  }
+
   // ── Derive & persist notifications from appointment list ──────────────────
   ///
   /// Call this after loading the appointments list. It will create new
@@ -64,6 +73,12 @@ class NotificationService {
     required List<AppointmentModel> appointments,
   }) async {
     final now = DateTime.now();
+    final batch = _db.batch();
+    bool hasUpdates = false;
+
+    // ── 0. Fetch existing notification IDs to avoid redundant GETs ──
+    final existingSnap = await _notifCol(userId).get();
+    final existingIds = existingSnap.docs.map((d) => d.id).toSet();
 
     for (final appt in appointments) {
       if (appt.id == null) continue;
@@ -76,11 +91,10 @@ class NotificationService {
               appt.status == 'approved') &&
           hoursUntil >= 0 &&
           hoursUntil <= 48) {
-        await _upsertNotification(
-          userId: userId,
-          notifId: 'reminder_${appt.id}',
-          model: NotificationModel(
-            id: 'reminder_${appt.id}',
+        final nid = 'reminder_${appt.id}';
+        if (!existingIds.contains(nid)) {
+          final model = NotificationModel(
+            id: nid,
             type: NotificationType.appointmentReminder,
             title: 'Upcoming Appointment 🐾',
             body:
@@ -92,17 +106,19 @@ class NotificationService {
             pet: appt.pet,
             doctor: appt.doctor,
             appointmentDateTime: appt.dateTime,
-          ),
-        );
+          );
+          batch.set(_notifCol(userId).doc(nid), model.toMap());
+          hasUpdates = true;
+          existingIds.add(nid); // Prevent duplicate in same loop
+        }
       }
 
       // ── 2. Approved notification ───────────────────────────────────────────
       if (appt.status == 'approved') {
-        await _upsertNotification(
-          userId: userId,
-          notifId: 'approved_${appt.id}',
-          model: NotificationModel(
-            id: 'approved_${appt.id}',
+        final nid = 'approved_${appt.id}';
+        if (!existingIds.contains(nid)) {
+          final model = NotificationModel(
+            id: nid,
             type: NotificationType.appointmentApproved,
             title: 'Appointment Approved ✅',
             body:
@@ -114,13 +130,15 @@ class NotificationService {
             pet: appt.pet,
             doctor: appt.doctor,
             appointmentDateTime: appt.dateTime,
-          ),
-        );
+          );
+          batch.set(_notifCol(userId).doc(nid), model.toMap());
+          hasUpdates = true;
+          existingIds.add(nid);
+        }
       }
 
       // ── 3. Completed → possible lab results / pet ready ───────────────────
       if (appt.status == 'completed') {
-        // Lab result notification for diagnostic services
         final diagServices = [
           'Diagnostics',
           'Lab Tests',
@@ -132,11 +150,10 @@ class NotificationService {
             .any((s) => appt.service.toLowerCase().contains(s.toLowerCase()));
 
         if (isLabService) {
-          await _upsertNotification(
-            userId: userId,
-            notifId: 'labresult_${appt.id}',
-            model: NotificationModel(
-              id: 'labresult_${appt.id}',
+          final nid = 'labresult_${appt.id}';
+          if (!existingIds.contains(nid)) {
+            final model = NotificationModel(
+              id: nid,
               type: NotificationType.labResults,
               title: 'Lab Results Ready 🔬',
               body:
@@ -148,15 +165,16 @@ class NotificationService {
               pet: appt.pet,
               doctor: appt.doctor,
               appointmentDateTime: appt.dateTime,
-            ),
-          );
+            );
+            batch.set(_notifCol(userId).doc(nid), model.toMap());
+            hasUpdates = true;
+            existingIds.add(nid);
+          }
         } else {
-          // General pet-ready notification
-          await _upsertNotification(
-            userId: userId,
-            notifId: 'petready_${appt.id}',
-            model: NotificationModel(
-              id: 'petready_${appt.id}',
+          final nid = 'petready_${appt.id}';
+          if (!existingIds.contains(nid)) {
+            final model = NotificationModel(
+              id: nid,
               type: NotificationType.petReady,
               title: '${appt.pet} is Ready for Pick-up! 🐕',
               body:
@@ -168,18 +186,20 @@ class NotificationService {
               pet: appt.pet,
               doctor: appt.doctor,
               appointmentDateTime: appt.dateTime,
-            ),
-          );
+            );
+            batch.set(_notifCol(userId).doc(nid), model.toMap());
+            hasUpdates = true;
+            existingIds.add(nid);
+          }
         }
       }
 
       // ── 4. Cancelled notification ─────────────────────────────────────────
       if (appt.status == 'cancelled') {
-        await _upsertNotification(
-          userId: userId,
-          notifId: 'cancelled_${appt.id}',
-          model: NotificationModel(
-            id: 'cancelled_${appt.id}',
+        final nid = 'cancelled_${appt.id}';
+        if (!existingIds.contains(nid)) {
+          final model = NotificationModel(
+            id: nid,
             type: NotificationType.appointmentCancelled,
             title: 'Appointment Cancelled',
             body:
@@ -191,9 +211,16 @@ class NotificationService {
             pet: appt.pet,
             doctor: appt.doctor,
             appointmentDateTime: appt.dateTime,
-          ),
-        );
+          );
+          batch.set(_notifCol(userId).doc(nid), model.toMap());
+          hasUpdates = true;
+          existingIds.add(nid);
+        }
       }
+    }
+
+    if (hasUpdates) {
+      await batch.commit();
     }
   }
 

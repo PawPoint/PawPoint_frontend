@@ -23,9 +23,12 @@ class ImageUtils {
       }
     }
 
-    // If it doesn't look like a URL or Data URI, assume it might be an asset path
-    // but typically we'd handle assets separately if we know they are assets.
-    return null;
+    // Fallback: Check if it's a raw base64 string (no prefix)
+    try {
+      return MemoryImage(base64Decode(photoUrl));
+    } catch (_) {
+      return null;
+    }
   }
 
   static Widget buildProfileImage(

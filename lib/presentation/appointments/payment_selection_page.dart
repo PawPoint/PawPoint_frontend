@@ -167,10 +167,10 @@ class _PaymentSelectionPageState extends State<PaymentSelectionPage> {
                     const SizedBox(height: 20),
                     _TermsSection(
                       number: '1',
-                      title: 'Downpayment Policy',
+                      title: 'Payment Policy',
                       content:
                           'A minimum of 30% downpayment is required to secure your appointment. '
-                          'This amount is non-refundable regardless of the reason for cancellation.',
+                          'All payments made through the platform are final and non-refundable.',
                     ),
                     const SizedBox(height: 14),
                     _TermsSection(
@@ -178,8 +178,7 @@ class _PaymentSelectionPageState extends State<PaymentSelectionPage> {
                       title: 'Cancellation Policy',
                       content:
                           'You may cancel your appointment through the app at any time. '
-                          'However, the downpayment will be forfeited. '
-                          'The remaining balance will not be charged if you cancel before your visit.',
+                          'However, any payments already made will be forfeited.',
                     ),
                     const SizedBox(height: 14),
                     _TermsSection(
@@ -195,7 +194,7 @@ class _PaymentSelectionPageState extends State<PaymentSelectionPage> {
                       title: 'Full Payment',
                       content:
                           'If you pay the full amount online, no additional payment is needed at the clinic. '
-                          'Full payments are also non-refundable upon cancellation.',
+                          'Full payments are also final upon cancellation.',
                     ),
                     const SizedBox(height: 14),
                     _TermsSection(
@@ -203,7 +202,7 @@ class _PaymentSelectionPageState extends State<PaymentSelectionPage> {
                       title: 'Clinic Rights',
                       content:
                           'PawPoint reserves the right to cancel or reschedule appointments due to '
-                          'unforeseen circumstances. In such cases, a full refund will be issued.',
+                          'unforeseen circumstances.',
                     ),
                     const SizedBox(height: 8),
                   ],

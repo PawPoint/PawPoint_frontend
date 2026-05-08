@@ -180,9 +180,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
   }
 
   Future<void> _cancelAppointment(AppointmentModel appt) async {
-    final hasPaid = appt.amountPaidOnline > 0;
-
-    // ── Pre-cancel dialog — user-initiated = no refund ────────────────────────
+    // ── Pre-cancel dialog ────────────────────────
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -197,52 +195,6 @@ class _AppointmentsPageState extends State<AppointmentsPage>
               'Are you sure you want to cancel your ${appt.service} appointment with ${appt.doctor}?',
               style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54),
             ),
-            if (hasPaid) ...[
-              const SizedBox(height: 14),
-              // User-initiated cancellation — ALWAYS no refund
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.shade200),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.warning_amber_rounded,
-                        color: Colors.red.shade700, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '⚠ No Refund — Downpayment Forfeited',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.red.shade700,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            'Your downpayment of ₱${appt.amountPaidOnline.toInt()} '
-                            'will NOT be refunded for user-initiated cancellations.',
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color: Colors.red.shade700,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
         actions: [
@@ -514,8 +466,9 @@ class _AppointmentsPageState extends State<AppointmentsPage>
         title: Text('Decline Reschedule?',
             style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
         content: Text(
-          'Declining will cancel this appointment and process a full refund of your downpayment.',
-          style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54, height: 1.5),
+          'Declining will cancel this appointment.',
+          style: GoogleFonts.poppins(
+              fontSize: 13, color: Colors.black54, height: 1.5),
         ),
         actions: [
           TextButton(

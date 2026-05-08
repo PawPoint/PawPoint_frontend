@@ -169,7 +169,7 @@ class _LoginsignupPageState extends State<LoginsignupPage>
                             child: ElevatedButton(
                               onPressed: () => Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => LoginPage()),
+                                MaterialPageRoute(builder: (_) => const LoginPage()),
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.black,
@@ -199,7 +199,7 @@ class _LoginsignupPageState extends State<LoginsignupPage>
                             child: OutlinedButton(
                               onPressed: () => Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => SignupPage()),
+                                MaterialPageRoute(builder: (_) => const SignupPage()),
                               ),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.black,

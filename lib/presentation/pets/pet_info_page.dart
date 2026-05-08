@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pawpoint_mobileapp/core/utils/image_utils.dart';
 import 'package:pawpoint_mobileapp/models/pet_model.dart';
 import 'add_pet_page.dart';
 
@@ -386,18 +387,20 @@ class PetInfoPage extends StatelessWidget {
   }
 
   Widget _buildPetImage(bool isDeceased) {
+    final imageProvider = ImageUtils.getProfileImage(pet.imageUrl);
     Widget imageWidget;
-    if (pet.imageUrl != null && pet.imageUrl!.isNotEmpty) {
-      imageWidget = Image.memory(
-        base64Decode(pet.imageUrl!),
+
+    if (imageProvider != null) {
+      imageWidget = Image(
+        image: imageProvider,
         fit: BoxFit.cover,
         width: 220,
         height: 220,
         errorBuilder: (_, _, _) =>
-            Icon(Icons.pets_rounded, size: 64, color: Colors.black12),
+            const Icon(Icons.pets_rounded, size: 64, color: Colors.black12),
       );
     } else {
-      imageWidget = Center(
+      imageWidget = const Center(
         child: Icon(Icons.pets_rounded, size: 64, color: Colors.black12),
       );
     }

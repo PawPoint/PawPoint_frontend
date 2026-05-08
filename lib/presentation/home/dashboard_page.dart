@@ -78,37 +78,32 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    _loadUnreadCount();
+    // Sync notifications in background after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncNotifications();
+    });
   }
 
-  Future<void> _loadUnreadCount() async {
+  Future<void> _syncNotifications() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     try {
-      final appointments =
-          await _apptService.getAppointments();
+      // 1. Fetch latest appointments
+      final appointments = await _apptService.getAppointments();
+      // 2. Sync them to Firestore notifications (using the optimized batching logic)
       await _notifService.syncAppointmentNotifications(
         userId: user.uid,
         appointments: appointments,
       );
-      final notifs =
-          await _notifService.getNotifications(userId: user.uid);
-      final adminNotifs =
-          await _notifService.getNewServiceNotifications();
-      final all = [
-        ...notifs,
-        ...adminNotifs.where((a) => !notifs.any((n) => n.id == a.id))
-      ];
-      if (mounted) {
-        setState(() {
-          _unreadNotifCount = all.where((n) => !n.isRead).length;
-        });
-      }
-    } catch (_) {}
+    } catch (_) {
+      // Fail silently in background
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -137,7 +132,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           MaterialPageRoute(
                             builder: (_) => const NotificationsPage(),
                           ),
-                        ).then((_) => _loadUnreadCount());
+                        ).then((_) => _syncNotifications());
                       },
                       child: Stack(
                         clipBehavior: Clip.none,
@@ -151,29 +146,35 @@ class _DashboardPageState extends State<DashboardPage> {
                               color: Colors.black54,
                             ),
                           ),
-                          if (_unreadNotifCount > 0)
-                            Positioned(
-                              right: -2,
-                              top: -2,
-                              child: Container(
-                                width: 17,
-                                height: 17,
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  _unreadNotifCount > 9
-                                      ? '9+'
-                                      : '$_unreadNotifCount',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w700,
+                          if (user != null)
+                            StreamBuilder<int>(
+                              stream: _notifService.getUnreadCountStream(user.uid),
+                              builder: (context, snapshot) {
+                                final count = snapshot.data ?? 0;
+                                if (count == 0) return const SizedBox.shrink();
+                                
+                                return Positioned(
+                                  right: -2,
+                                  top: -2,
+                                  child: Container(
+                                    width: 17,
+                                    height: 17,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      count > 9 ? '9+' : '$count',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
                         ],
                       ),
