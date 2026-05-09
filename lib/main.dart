@@ -35,7 +35,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Pawpoint Digi-App',
+      title: 'PawPoint',
       
       // Set the Splash Screen as the starting point
       initialRoute: '/', 
